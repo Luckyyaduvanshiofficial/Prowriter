@@ -76,30 +76,155 @@ If the user provides a tone like "journalistic" or "friendly," adjust the tone a
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { topic, modelA, modelB, tone = "friendly", temperature = 0.7, contentType = "comparison" } = body
+    const { 
+      topic, 
+      modelA, 
+      modelB, 
+      useCase,
+      aiEngine = "qwen",
+      articleLength = "medium",
+      tone = "friendly", 
+      temperature = 0.7, 
+      contentType = "comparison",
+      seoKeywords = "",
+      targetAudience = "",
+      customInstructions = "",
+      brandVoice = "friendly",
+      includeWebSearch = false,
+      includeSerpAnalysis = false
+    } = body
 
     if (!topic) {
       return NextResponse.json({ error: "Topic is required" }, { status: 400 })
     }
 
-    // Configure OpenRouter with qwen3-235b-a22b
-    const model = openai("qwen/qwen-2.5-72b-instruct", {
+    // Map AI engines to actual models
+    const engineModels = {
+      "qwen": "qwen/qwen-2.5-72b-instruct",
+      "llama": "meta-llama/llama-3.1-405b-instruct",
+      "deepseek": "deepseek/deepseek-coder",
+      "gemini": "google/gemini-pro"
+    }
+
+    const selectedModel = engineModels[aiEngine] || engineModels["qwen"]
+
+    // Configure OpenRouter
+    const model = openai(selectedModel, {
       baseURL: "https://openrouter.ai/api/v1",
       apiKey: process.env.OPENROUTER_API_KEY,
     })
 
+    // Customize prompt based on article length
+    const lengthInstructions = {
+      "short": "Write a focused 800-1000 word article.",
+      "medium": "Write a comprehensive 1200-1500 word article.",
+      "long": "Write an in-depth 1800-2500 word article with detailed analysis.",
+      "epic": "Write an ultimate 3000+ word comprehensive guide with extensive examples and analysis."
+    }
+
+    // Customize prompt based on content type
+    const contentTypeInstructions = {
+      "how-to": "Structure as a step-by-step tutorial with clear instructions, prerequisites, and troubleshooting tips. Include numbered steps and practical examples.",
+      "guide": "Create a comprehensive educational guide with background information, detailed explanations, best practices, and expert insights.",
+      "comparison": "Focus on detailed side-by-side analysis, benchmarks, pros/cons, use case recommendations, and clear verdicts.",
+      "news": "Write in journalistic style with latest updates, industry impact, expert quotes, and future implications.",
+      "informative": "Provide educational content with clear explanations, examples, and actionable insights for the target audience."
+    }
+
+    // Brand voice adjustments
+    const brandVoiceInstructions = {
+      "professional": "Use formal, authoritative language with industry terminology and expert-level insights.",
+      "friendly": "Write conversationally with a warm, approachable tone and relatable examples.",
+      "technical": "Include detailed technical explanations, specifications, and expert-level analysis.",
+      "casual": "Use relaxed, easy-to-read language with informal tone and accessible explanations.",
+      "journalistic": "Adopt news-style writing with objective reporting, quotes, and fact-based analysis."
+    }
+
     let customPrompt = MASTER_PROMPT
 
-    // Adjust tone if specified
-    if (tone !== "friendly") {
-      customPrompt += `\n\n🎨 TONE ADJUSTMENT: Write in a ${tone} tone while maintaining the structure above.`
+    // Add length and content type specific instructions
+    customPrompt += `\n\n📏 ARTICLE LENGTH: ${lengthInstructions[articleLength]}`
+    customPrompt += `\n\n📝 CONTENT TYPE: ${contentTypeInstructions[contentType]}`
+    customPrompt += `\n\n🎨 BRAND VOICE: ${brandVoiceInstructions[brandVoice]}`
+
+    // Add SEO and audience targeting
+    if (seoKeywords) {
+      customPrompt += `\n\n🎯 SEO KEYWORDS: Focus on these keywords naturally throughout the content: ${seoKeywords}`
+    }
+    
+    if (targetAudience) {
+      customPrompt += `\n\n👥 TARGET AUDIENCE: Write specifically for: ${targetAudience}`
+    }
+
+    // Add custom instructions if provided
+    if (customInstructions) {
+      customPrompt += `\n\n📋 SPECIAL INSTRUCTIONS: ${customInstructions}`
+    }
+
+    // Add web search context if enabled (PRO feature simulation)
+    if (includeWebSearch) {
+      customPrompt += `\n\n🌐 WEB SEARCH CONTEXT: Include latest industry trends, recent developments, and current market insights in your analysis.`
+    }
+
+    // Add SERP analysis if enabled (PRO feature simulation)
+    if (includeSerpAnalysis) {
+      customPrompt += `\n\n🔍 SERP OPTIMIZATION: Structure content to compete with top-ranking articles, include FAQ sections optimized for featured snippets, and use heading structures that perform well in search results.`
     }
 
     // Create the specific prompt based on content type
     let specificPrompt = ""
 
     if (contentType === "comparison" && modelA && modelB) {
-      specificPrompt = `Write a comprehensive comparison article between ${modelA} and ${modelB}. Focus on: ${topic}`
+      specificPrompt = `Write a comprehensive comparison article between ${modelA} and ${modelB}. Focus on: ${topic}
+
+Key comparison points to cover:
+- Performance benchmarks and real-world testing
+- Strengths and weaknesses analysis
+- Use case recommendations and scenarios
+- Pricing and accessibility comparison
+- User experience and interface evaluation
+- Final recommendation with clear decision criteria`
+    } else if (contentType === "how-to") {
+      specificPrompt = `Write a detailed how-to guide about: ${topic}
+
+Structure requirements:
+- Clear introduction explaining what readers will accomplish
+- Prerequisites and requirements section
+- Step-by-step instructions with numbered steps
+- Screenshots/visual aids placeholders where helpful
+- Troubleshooting section for common issues
+- Conclusion with next steps or advanced techniques`
+    } else if (contentType === "guide") {
+      specificPrompt = `Write a comprehensive guide about: ${topic}
+
+Content requirements:
+- Executive summary for quick overview
+- Background and context setting
+- Core concepts with detailed explanations
+- Best practices and expert recommendations
+- Real-world examples and case studies
+- Common pitfalls and how to avoid them
+- Resources for further learning`
+    } else if (contentType === "news") {
+      specificPrompt = `Write a news-style article about: ${topic}
+
+Journalistic structure:
+- Compelling headline and lead paragraph
+- Who, what, when, where, why coverage
+- Industry expert perspectives and quotes
+- Market impact and implications analysis
+- Background context for newcomers
+- Future outlook and predictions`
+    } else if (contentType === "informative") {
+      specificPrompt = `Write an informative educational article about: ${topic}
+
+Educational focus:
+- Clear learning objectives
+- Foundational concepts explanation
+- Progressive complexity building
+- Practical applications and examples
+- Key takeaways and summary
+- Further reading suggestions`
     } else {
       specificPrompt = `Write a comprehensive blog article about: ${topic}`
     }
@@ -110,7 +235,7 @@ export async function POST(request: NextRequest) {
       model,
       prompt: finalPrompt,
       temperature,
-      maxTokens: 4000,
+      maxTokens: articleLength === "long" ? 6000 : articleLength === "medium" ? 4000 : 3000,
     })
 
     return NextResponse.json({
@@ -119,9 +244,17 @@ export async function POST(request: NextRequest) {
         topic,
         modelA,
         modelB,
+        useCase,
+        aiEngine,
+        articleLength,
         tone,
         temperature,
         contentType,
+        seoKeywords,
+        targetAudience,
+        brandVoice,
+        includeWebSearch,
+        includeSerpAnalysis,
         generatedAt: new Date().toISOString(),
       },
     })
