@@ -46,7 +46,7 @@ export default function Home() {
                 <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
                   <Brain className="w-5 h-5 text-white" />
                 </div>
-                <span className="text-2xl font-bold text-gray-900">RankLLMs</span>
+                <span className="text-2xl font-bold text-gray-900">Prowriter AI</span>
               </div>
               <Badge variant="outline" className="hidden sm:block border-blue-200 text-blue-700">
                 Beta
@@ -352,7 +352,7 @@ export default function Home() {
               Trusted by Creators
             </Badge>
             <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
-              Content creators choose RankLLMs
+              Content creators choose Prowriter AI
               <br />
               <span className="text-blue-600">over generic AI tools</span>
             </h2>
@@ -387,7 +387,7 @@ export default function Home() {
                 </div>
               </div>
               <p className="text-gray-600 leading-relaxed">
-                "The SEO optimization is incredible. My RankLLMs articles consistently 
+                "The SEO optimization is incredible. My Prowriter AI articles consistently 
                 outrank content from bigger publications. It's like having an expert writer on my team."
               </p>
               <div className="flex text-yellow-400 mt-4">
@@ -407,7 +407,7 @@ export default function Home() {
               </div>
               <p className="text-gray-600 leading-relaxed">
                 "We've scaled our content production 10x while maintaining quality. 
-                RankLLMs specializes in AI comparisons better than any general tool."
+                Prowriter AI specializes in AI comparisons better than any general tool."
               </p>
               <div className="flex text-yellow-400 mt-4">
                 {[...Array(5)].map((_, i) => (
@@ -565,7 +565,7 @@ export default function Home() {
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
                     <Brain className="w-6 h-6 text-white" />
                   </div>
-                  <span className="text-2xl font-bold">RankLLMs</span>
+                  <span className="text-2xl font-bold">Prowriter AI</span>
                 </div>
                 <p className="text-gray-400 leading-relaxed mb-6 max-w-md">
                   The only platform you need for creating expert-level AI model comparison content. 
@@ -626,7 +626,7 @@ export default function Home() {
             <div className="max-w-7xl mx-auto px-4 py-6">
               <div className="flex flex-col md:flex-row justify-between items-center">
                 <p className="text-gray-400 text-sm">
-                  &copy; 2025 RankLLMs. All rights reserved.
+                  &copy; 2025 Prowriter AI. All rights reserved.
                 </p>
                 <div className="flex items-center space-x-6 mt-4 md:mt-0">
                   <span className="text-gray-400 text-sm flex items-center">

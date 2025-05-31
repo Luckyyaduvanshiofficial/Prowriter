@@ -1,0 +1,21 @@
+User-agent: *
+Allow: /
+
+# SEO-optimized robots.txt for Prowriter AI
+Sitemap: https://prowriter.miniai.online/sitemap.xml
+
+# Block common crawler traps
+Disallow: /api/
+Disallow: /auth/callback
+Disallow: /_next/
+Disallow: /admin/
+
+# Allow important pages
+Allow: /
+Allow: /pricing
+Allow: /blog-writer
+Allow: /generate
+Allow: /articles
+
+# Crawl delay
+Crawl-delay: 1

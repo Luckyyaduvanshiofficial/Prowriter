@@ -254,7 +254,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 /*
 -- Sample profile (replace with your actual user ID from auth.users)
 INSERT INTO public.profiles (id, email, full_name, plan) 
-VALUES ('00000000-0000-0000-0000-000000000000', 'demo@rankllms.com', 'Demo User', 'pro')
+VALUES ('00000000-0000-0000-0000-000000000000', 'demo@prowriter.miniai.online', 'Demo User', 'pro')
 ON CONFLICT (id) DO NOTHING;
 
 -- Sample article

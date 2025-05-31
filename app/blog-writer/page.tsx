@@ -13,6 +13,8 @@ import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { 
   ArrowLeft, 
   Loader2, 
@@ -33,7 +35,11 @@ import {
   Globe,
   Wand2,
   RefreshCw,
-  Settings
+  Settings,
+  ChevronDown,
+  ChevronUp,
+  Menu,
+  Filter
 } from "lucide-react"
 import Link from "next/link"
 import { getAvailableModels, AI_MODELS, getModelById } from "@/lib/ai-providers"
@@ -103,6 +109,11 @@ export default function BlogWriterPage() {
   const [availableModels, setAvailableModels] = useState<any[]>([])
   const [selectedProvider, setSelectedProvider] = useState<string>('all')
   
+  // Mobile UI state
+  const [showMobileFilters, setShowMobileFilters] = useState(false)
+  const [isAdvancedOpen, setIsAdvancedOpen] = useState(false)
+  const [activeTab, setActiveTab] = useState("setup")
+  
   // Form state
   const [articleType, setArticleType] = useState("comparison")
   const [topic, setTopic] = useState("")
@@ -163,11 +174,11 @@ export default function BlogWriterPage() {
         console.log('No user found, using demo mode for blog writer')
         const mockUser = {
           id: 'demo-user',
-          email: 'demo@rankllms.com'
+          email: 'demo@prowriter.miniai.online'
         }
         const mockProfile = {
           id: 'demo-user',
-          email: 'demo@rankllms.com',
+          email: 'demo@prowriter.miniai.online',
           plan: 'pro',
           articles_generated_today: 3,
           full_name: 'Demo User'
@@ -204,11 +215,11 @@ export default function BlogWriterPage() {
       console.error('Error in checkUser:', error)
       const mockUser = {
         id: 'demo-user',
-        email: 'demo@rankllms.com'
+        email: 'demo@prowriter.miniai.online'
       }
       const mockProfile = {
         id: 'demo-user',
-        email: 'demo@rankllms.com',
+        email: 'demo@prowriter.miniai.online',
         plan: 'pro',
         articles_generated_today: 3
       }
@@ -537,32 +548,35 @@ ${articleType === 'comparison' ? `
       {/* Header */}
       <div className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center space-x-4">
+          <div className="flex justify-between items-center py-3 lg:py-4">
+            <div className="flex items-center space-x-2 lg:space-x-4">
               <Link href="/dashboard">
-                <Button variant="ghost" size="sm">
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Dashboard
+                <Button variant="ghost" size="sm" className="h-9 px-2 lg:px-3">
+                  <ArrowLeft className="h-4 w-4 mr-1 lg:mr-2" />
+                  <span className="hidden sm:inline">Dashboard</span>
+                  <span className="sm:hidden">Back</span>
                 </Button>
               </Link>
               <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                <h1 className="text-lg lg:text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                   AI Blog Writer
                 </h1>
-                <p className="text-sm text-gray-600">Create professional, SEO-optimized content</p>
+                <p className="text-xs lg:text-sm text-gray-600 hidden sm:block">Create professional, SEO-optimized content</p>
               </div>
             </div>
             
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2 lg:space-x-4">
               <div className="text-right">
-                <p className="text-sm font-medium text-gray-900">{profile.full_name || profile.email}</p>
-                <div className="flex items-center space-x-2">
-                  <Badge variant={profile.plan === 'pro' ? 'default' : 'secondary'}>
+                <p className="text-xs lg:text-sm font-medium text-gray-900 truncate max-w-32 lg:max-w-none">
+                  {profile.full_name || profile.email}
+                </p>
+                <div className="flex items-center space-x-1 lg:space-x-2">
+                  <Badge variant={profile.plan === 'pro' ? 'default' : 'secondary'} className="text-xs">
                     {profile.plan === 'pro' && <Crown className="h-3 w-3 mr-1" />}
                     {profile.plan?.toUpperCase()}
                   </Badge>
-                  <span className="text-xs text-gray-500">
-                    {remainingArticles} articles left today
+                  <span className="text-xs text-gray-500 hidden sm:inline">
+                    {remainingArticles} left
                   </span>
                 </div>
               </div>
@@ -571,10 +585,84 @@ ${articleType === 'comparison' ? `
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Sidebar - Article Types */}
-          <div className="lg:col-span-1">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 lg:py-8">
+        {/* Mobile Progress Indicator */}
+        {(generating || generatingOutline) && (
+          <div className="lg:hidden mb-6">
+            <Card>
+              <CardContent className="pt-4 pb-4">
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-2">
+                    <Zap className="h-5 w-5 text-blue-600" />
+                    <span className="font-medium">Generation Progress</span>
+                  </div>
+                  <Progress value={(currentStep / totalSteps) * 100} className="w-full" />
+                  <p className="text-sm text-gray-600">
+                    Step {Math.floor(currentStep)} of {totalSteps}
+                  </p>
+                  {generating && (
+                    <div className="flex items-center space-x-2">
+                      <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+                      <span className="text-sm">Writing your article...</span>
+                    </div>
+                  )}
+                  {generatingOutline && (
+                    <div className="flex items-center space-x-2">
+                      <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+                      <span className="text-sm">Creating outline...</span>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Mobile Article Type Selection */}
+        <div className="lg:hidden mb-6">
+          <Collapsible open={isAdvancedOpen} onOpenChange={setIsAdvancedOpen}>
+            <CollapsibleTrigger asChild>
+              <Button variant="outline" className="w-full justify-between h-12">
+                <div className="flex items-center">
+                  <FileText className="h-5 w-5 mr-2" />
+                  <span>Article Type: {ARTICLE_TYPES.find(t => t.id === articleType)?.name}</span>
+                </div>
+                {isAdvancedOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-2 mt-3">
+              {ARTICLE_TYPES.map((type) => {
+                const Icon = type.icon
+                return (
+                  <button
+                    key={type.id}
+                    onClick={() => {
+                      setArticleType(type.id)
+                      setIsAdvancedOpen(false)
+                    }}
+                    className={`w-full p-4 rounded-lg border-2 text-left transition-all ${
+                      articleType === type.id
+                        ? 'border-blue-500 bg-blue-50 text-blue-700'
+                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <Icon className="h-5 w-5 flex-shrink-0" />
+                      <div>
+                        <div className="font-medium">{type.name}</div>
+                        <div className="text-sm text-gray-600">{type.description}</div>
+                      </div>
+                    </div>
+                  </button>
+                )
+              })}
+            </CollapsibleContent>
+          </Collapsible>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+          {/* Desktop Left Sidebar - Article Types */}
+          <div className="hidden lg:block lg:col-span-1">
             <Card className="mb-6">
               <CardHeader>
                 <CardTitle className="flex items-center">
@@ -639,54 +727,66 @@ ${articleType === 'comparison' ? `
 
           {/* Main Content Area */}
           <div className="lg:col-span-2">
-            <Tabs defaultValue="setup" className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="setup">Setup</TabsTrigger>
-                <TabsTrigger value="outline">Outline</TabsTrigger>
-                <TabsTrigger value="article">Article</TabsTrigger>
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="grid w-full grid-cols-3 h-12 mb-6">
+                <TabsTrigger value="setup" className="text-sm font-medium">
+                  <Settings className="h-4 w-4 mr-2 lg:mr-1" />
+                  <span className="hidden sm:inline">Setup</span>
+                  <span className="sm:hidden">Setup</span>
+                </TabsTrigger>
+                <TabsTrigger value="outline" className="text-sm font-medium">
+                  <BookOpen className="h-4 w-4 mr-2 lg:mr-1" />
+                  <span className="hidden sm:inline">Outline</span>
+                  <span className="sm:hidden">Outline</span>
+                </TabsTrigger>
+                <TabsTrigger value="article" className="text-sm font-medium">
+                  <FileText className="h-4 w-4 mr-2 lg:mr-1" />
+                  <span className="hidden sm:inline">Article</span>
+                  <span className="sm:hidden">Article</span>
+                </TabsTrigger>
               </TabsList>
 
               {/* Setup Tab */}
-              <TabsContent value="setup" className="space-y-6">
+              <TabsContent value="setup" className="space-y-4 lg:space-y-6">
                 <Card>
-                  <CardHeader>
-                    <CardTitle>Article Configuration</CardTitle>
+                  <CardHeader className="pb-4 lg:pb-6">
+                    <CardTitle className="text-lg lg:text-xl">Article Configuration</CardTitle>
                     <CardDescription>Configure your article settings and requirements</CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-6">
+                  <CardContent className="space-y-5 lg:space-y-6">
                     {/* Topic Input */}
                     <div>
-                      <Label htmlFor="topic">Article Topic *</Label>
+                      <Label htmlFor="topic" className="text-sm font-medium">Article Topic *</Label>
                       <Input
                         id="topic"
                         placeholder="e.g., Best AI Models for Content Creation in 2024"
                         value={topic}
                         onChange={(e) => setTopic(e.target.value)}
-                        className="mt-1"
+                        className="mt-2 h-11 lg:h-10"
                       />
                     </div>
 
                     {/* Comparison specific inputs */}
                     {articleType === 'comparison' && (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                          <Label htmlFor="modelA">Model A</Label>
+                          <Label htmlFor="modelA" className="text-sm font-medium">Model A</Label>
                           <Input
                             id="modelA"
                             placeholder="e.g., GPT-4"
                             value={modelA}
                             onChange={(e) => setModelA(e.target.value)}
-                            className="mt-1"
+                            className="mt-2 h-11 lg:h-10"
                           />
                         </div>
                         <div>
-                          <Label htmlFor="modelB">Model B</Label>
+                          <Label htmlFor="modelB" className="text-sm font-medium">Model B</Label>
                           <Input
                             id="modelB"
                             placeholder="e.g., Claude 3.5"
                             value={modelB}
                             onChange={(e) => setModelB(e.target.value)}
-                            className="mt-1"
+                            className="mt-2 h-11 lg:h-10"
                           />
                         </div>
                       </div>
@@ -694,34 +794,34 @@ ${articleType === 'comparison' ? `
 
                     {/* SEO Keywords */}
                     <div>
-                      <Label htmlFor="keywords">SEO Keywords</Label>
+                      <Label htmlFor="keywords" className="text-sm font-medium">SEO Keywords</Label>
                       <Input
                         id="keywords"
                         placeholder="ai models, comparison, 2024, machine learning"
                         value={seoKeywords}
                         onChange={(e) => setSeoKeywords(e.target.value)}
-                        className="mt-1"
+                        className="mt-2 h-11 lg:h-10"
                       />
                       <p className="text-xs text-gray-500 mt-1">Comma-separated keywords for SEO optimization</p>
                     </div>
 
                     {/* Target Audience */}
                     <div>
-                      <Label htmlFor="audience">Target Audience</Label>
+                      <Label htmlFor="audience" className="text-sm font-medium">Target Audience</Label>
                       <Input
                         id="audience"
                         placeholder="e.g., AI developers, business owners, tech enthusiasts"
                         value={targetAudience}
                         onChange={(e) => setTargetAudience(e.target.value)}
-                        className="mt-1"
+                        className="mt-2 h-11 lg:h-10"
                       />
                     </div>
 
                     {/* AI Provider Selection */}
                     <div>
-                      <Label>AI Provider</Label>
+                      <Label className="text-sm font-medium">AI Provider</Label>
                       <Select value={selectedProvider} onValueChange={setSelectedProvider}>
-                        <SelectTrigger className="mt-1">
+                        <SelectTrigger className="mt-2 h-11 lg:h-10">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -753,9 +853,9 @@ ${articleType === 'comparison' ? `
 
                     {/* AI Engine Selection */}
                     <div>
-                      <Label>AI Engine</Label>
+                      <Label className="text-sm font-medium">AI Engine</Label>
                       <Select value={aiEngine} onValueChange={setAiEngine}>
-                        <SelectTrigger className="mt-1">
+                        <SelectTrigger className="mt-2 h-11 lg:h-10">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -787,9 +887,9 @@ ${articleType === 'comparison' ? `
 
                     {/* Content Length */}
                     <div>
-                      <Label>Content Length</Label>
+                      <Label className="text-sm font-medium">Content Length</Label>
                       <Select value={contentLength} onValueChange={setContentLength}>
-                        <SelectTrigger className="mt-1">
+                        <SelectTrigger className="mt-2 h-11 lg:h-10">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -816,9 +916,9 @@ ${articleType === 'comparison' ? `
 
                     {/* Brand Voice */}
                     <div>
-                      <Label>Brand Voice</Label>
+                      <Label className="text-sm font-medium">Brand Voice</Label>
                       <Select value={brandVoice} onValueChange={setBrandVoice}>
-                        <SelectTrigger className="mt-1">
+                        <SelectTrigger className="mt-2 h-11 lg:h-10">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -844,14 +944,14 @@ ${articleType === 'comparison' ? `
                       <div className="space-y-4">
                         {/* Custom Instructions */}
                         <div>
-                          <Label htmlFor="instructions">Custom Instructions</Label>
+                          <Label htmlFor="instructions" className="text-sm font-medium">Custom Instructions</Label>
                           <Textarea
                             id="instructions"
                             placeholder="Any specific requirements, style preferences, or additional context..."
                             value={customInstructions}
                             onChange={(e) => setCustomInstructions(e.target.value)}
-                            className="mt-1"
-                            rows={3}
+                            className="mt-2 min-h-[100px] lg:min-h-[80px]"
+                            rows={4}
                           />
                         </div>
 
@@ -913,7 +1013,7 @@ ${articleType === 'comparison' ? `
                     <Button
                       onClick={handleGenerateOutline}
                       disabled={!topic.trim() || generatingOutline}
-                      className="w-full"
+                      className="w-full h-12 lg:h-11"
                       size="lg"
                     >
                       {generatingOutline ? (
@@ -945,15 +1045,15 @@ ${articleType === 'comparison' ? `
                   <CardContent>
                     {generatedOutline ? (
                       <div className="space-y-4">
-                        <div className="bg-gray-50 p-4 rounded-lg">
-                          <pre className="whitespace-pre-wrap text-sm font-mono">{generatedOutline}</pre>
+                        <div className="bg-gray-50 p-3 lg:p-4 rounded-lg overflow-hidden">
+                          <pre className="whitespace-pre-wrap text-xs sm:text-sm font-mono overflow-x-auto">{generatedOutline}</pre>
                         </div>
                         
-                        <div className="flex space-x-3">
+                        <div className="flex flex-col sm:flex-row gap-3">
                           <Button
                             onClick={handleGenerateArticle}
                             disabled={generating || remainingArticles <= 0}
-                            className="flex-1"
+                            className="flex-1 h-12 lg:h-11"
                             size="lg"
                           >
                             {generating ? (
@@ -973,8 +1073,10 @@ ${articleType === 'comparison' ? `
                             onClick={handleGenerateOutline}
                             variant="outline"
                             disabled={generatingOutline}
+                            className="h-12 lg:h-11 sm:w-auto w-full"
                           >
-                            <RefreshCw className="h-4 w-4" />
+                            <RefreshCw className="h-4 w-4 sm:mr-0 mr-2" />
+                            <span className="sm:hidden">Regenerate Outline</span>
                           </Button>
                         </div>
                       </div>
@@ -995,8 +1097,12 @@ ${articleType === 'comparison' ? `
                     {/* Article Actions */}
                     <Card>
                       <CardContent className="pt-6">
-                        <div className="flex flex-wrap gap-3">
-                          <Button onClick={handleSave} disabled={saving}>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          <Button 
+                            onClick={handleSave} 
+                            disabled={saving}
+                            className="h-12 lg:h-10"
+                          >
                             {saving ? (
                               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                             ) : (
@@ -1005,12 +1111,20 @@ ${articleType === 'comparison' ? `
                             Save Article
                           </Button>
                           
-                          <Button onClick={copyToClipboard} variant="outline">
+                          <Button 
+                            onClick={copyToClipboard} 
+                            variant="outline"
+                            className="h-12 lg:h-10"
+                          >
                             <Copy className="h-4 w-4 mr-2" />
                             Copy
                           </Button>
                           
-                          <Button onClick={downloadArticle} variant="outline">
+                          <Button 
+                            onClick={downloadArticle} 
+                            variant="outline"
+                            className="h-12 lg:h-10"
+                          >
                             <Download className="h-4 w-4 mr-2" />
                             Download
                           </Button>
@@ -1026,7 +1140,7 @@ ${articleType === 'comparison' ? `
                       </CardHeader>
                       <CardContent>
                         <div 
-                          className="prose prose-lg max-w-none"
+                          className="prose prose-sm sm:prose-lg max-w-none prose-blue"
                           dangerouslySetInnerHTML={{ __html: generatedContent }}
                         />
                       </CardContent>
@@ -1047,6 +1161,31 @@ ${articleType === 'comparison' ? `
             </Tabs>
           </div>
         </div>
+
+        {/* Mobile Floating Action Button */}
+        {activeTab === "setup" && topic.trim() && !generatingOutline && (
+          <div className="lg:hidden fixed bottom-6 right-6 z-20">
+            <Button
+              onClick={handleGenerateOutline}
+              size="lg"
+              className="h-14 w-14 rounded-full shadow-lg"
+            >
+              <Wand2 className="h-6 w-6" />
+            </Button>
+          </div>
+        )}
+
+        {activeTab === "outline" && generatedOutline && !generating && remainingArticles > 0 && (
+          <div className="lg:hidden fixed bottom-6 right-6 z-20">
+            <Button
+              onClick={handleGenerateArticle}
+              size="lg"
+              className="h-14 w-14 rounded-full shadow-lg"
+            >
+              <Sparkles className="h-6 w-6" />
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   )

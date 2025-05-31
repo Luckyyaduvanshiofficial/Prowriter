@@ -67,6 +67,45 @@ body {
   .animate-scale-in {
     animation: scaleIn 0.3s ease-out;
   }
+  
+  /* Mobile-specific improvements */
+  .mobile-scroll {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+  
+  /* Mobile viewport handling */
+  .mobile-vh {
+    height: calc(var(--vh, 1vh) * 100);
+  }
+  
+  /* Touch-friendly focus states */
+  @media (hover: none) and (pointer: coarse) {
+    .touch-target {
+      min-height: 44px;
+      min-width: 44px;
+    }
+    
+    /* Reduce hover effects on touch devices */
+    .hover\\:bg-gray-50:hover {
+      background-color: initial;
+    }
+  }
+  
+  /* Improved mobile text selection */
+  .mobile-text {
+    -webkit-user-select: text;
+    user-select: text;
+    -webkit-touch-callout: default;
+  }
+  
+  /* Mobile keyboard handling */
+  @media screen and (max-height: 600px) {
+    .mobile-compact {
+      padding-top: 0.5rem;
+      padding-bottom: 0.5rem;
+    }
+  }
 }
 
 @keyframes fadeIn {

@@ -106,7 +106,7 @@ export default function AuthPage() {
               <div className="w-12 h-12 rounded-xl bg-white/30 backdrop-blur-sm flex items-center justify-center mr-3 shadow-2xl border border-white/20">
                 <Brain className="w-7 h-7 text-white drop-shadow-lg" />
               </div>
-              <span className="text-2xl lg:text-3xl font-bold text-white drop-shadow-lg">RankLLMs</span>
+              <span className="text-2xl lg:text-3xl font-bold text-white drop-shadow-lg">Prowriter AI</span>
             </div>
             
             {/* Main heading */}
@@ -155,7 +155,7 @@ export default function AuthPage() {
                 <span className="text-base font-bold text-white drop-shadow-md">4.9/5 rating</span>
               </div>
               <p className="text-base text-white mb-4 text-center lg:text-left font-medium drop-shadow-md leading-relaxed">
-                "RankLLMs helped me create 50+ comparison articles for my AI blog. The quality is incredible!"
+                "Prowriter AI helped me create 50+ comparison articles for my AI blog. The quality is incredible!"
               </p>
               <p className="text-sm text-yellow-200 text-center lg:text-left font-bold drop-shadow-md">— Sarah Chen, AI Content Creator</p>
             </div>

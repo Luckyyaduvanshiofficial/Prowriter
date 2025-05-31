@@ -52,11 +52,11 @@ export default function Dashboard() {
         // For demo purposes, create a mock user and profile
         const mockUser = {
           id: 'demo-user',
-          email: 'demo@rankllms.com'
+          email: 'demo@prowriter.miniai.online'
         }
         const mockProfile = {
           id: 'demo-user',
-          email: 'demo@rankllms.com',
+          email: 'demo@prowriter.miniai.online',
           plan: 'free',
           articles_generated_today: 2,
           full_name: 'Demo User'
@@ -136,11 +136,11 @@ export default function Dashboard() {
       // Fallback to demo mode
       const mockUser = {
         id: 'demo-user',
-        email: 'demo@rankllms.com'
+        email: 'demo@prowriter.miniai.online'
       }
       const mockProfile = {
         id: 'demo-user',
-        email: 'demo@rankllms.com',
+        email: 'demo@prowriter.miniai.online',
         plan: 'free',
         articles_generated_today: 2
       }
@@ -202,7 +202,7 @@ export default function Dashboard() {
                 <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
                   <Brain className="w-5 h-5 text-white" />
                 </div>
-                <span className="text-2xl font-bold text-gray-900">RankLLMs</span>
+                <span className="text-2xl font-bold text-gray-900">Prowriter AI</span>
               </Link>
               <Badge 
                 variant={profile.plan === 'free' ? 'secondary' : 'default'}

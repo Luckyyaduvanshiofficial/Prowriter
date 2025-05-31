@@ -291,7 +291,7 @@ export default function PricingPage() {
         <div className="text-center mt-16">
           <h2 className="text-3xl font-bold mb-4">Ready to Get Started?</h2>
           <p className="text-xl text-gray-600 mb-8">
-            Join thousands of content creators using RankLLMs
+            Join thousands of content creators using Prowriter AI
           </p>
           <Link href="/auth">
             <Button size="lg" className="px-8 py-6 text-lg">

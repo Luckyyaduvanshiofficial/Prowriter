@@ -1,6 +1,8 @@
-# RankLLMs - Premium AI Content Generation SaaS
+# Prowriter AI - Premium AI Content Generation SaaS
 
 A professional SaaS platform that generates expert-level AI model comparison articles using advanced language models. Built for content creators who need high-quality, SEO-optimized blog content about AI/LLM comparisons.
+
+🌐 **Live Platform**: [prowriter.miniai.online](https://prowriter.miniai.online)
 
 ## 🚀 Features
 
@@ -245,7 +247,7 @@ MIT License - see [LICENSE](LICENSE) file for details
 
 ## 🆘 Support
 
-- 📧 **Email**: support@rankllms.com
+- 📧 **Email**: support@prowriter.miniai.online
 - 💬 **Discord**: [Join our community]
 - 📖 **Docs**: [Documentation site]
 - 🐛 **Issues**: [GitHub Issues]

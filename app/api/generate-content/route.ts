@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createProviderClient, getModelById } from "@/lib/ai-providers"
 
-const MASTER_PROMPT = `You are an experienced SEO blog writer and technical expert in AI and Large Language Models (LLMs). You write for RankLLMs.com, a trusted platform that compares, ranks, and explains AI models in a way that's easy to understand for beginners and insightful for advanced users.
+const MASTER_PROMPT = `You are an experienced SEO blog writer and technical expert in AI and Large Language Models (LLMs). You write for Prowriter AI (prowriter.miniai.online), a trusted platform that compares, ranks, and explains AI models in a way that's easy to understand for beginners and insightful for advanced users.
 
 🎯 OBJECTIVE:
 Write a long-form (1,500+ words), SEO-optimized, comparison-style blog article between two LLMs.

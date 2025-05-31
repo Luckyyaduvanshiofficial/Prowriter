@@ -90,11 +90,11 @@ export default function GeneratePage() {
         // For demo purposes, create a mock user and profile
         const mockUser = {
           id: 'demo-user',
-          email: 'demo@rankllms.com'
+          email: 'demo@prowriter.miniai.online'
         }
         const mockProfile = {
           id: 'demo-user',
-          email: 'demo@rankllms.com',
+          email: 'demo@prowriter.miniai.online',
           plan: 'free',
           articles_generated_today: 2,
           full_name: 'Demo User'
@@ -133,11 +133,11 @@ export default function GeneratePage() {
       // Fallback to demo mode
       const mockUser = {
         id: 'demo-user',
-        email: 'demo@rankllms.com'
+        email: 'demo@prowriter.miniai.online'
       }
       const mockProfile = {
         id: 'demo-user',
-        email: 'demo@rankllms.com',
+        email: 'demo@prowriter.miniai.online',
         plan: 'free',
         articles_generated_today: 2
       }

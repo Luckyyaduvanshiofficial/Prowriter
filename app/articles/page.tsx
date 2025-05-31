@@ -55,7 +55,7 @@ export default function ArticleHistoryPage() {
       
       if (!user) {
         // Use demo user for development
-        const mockUser = { id: 'demo-user', email: 'demo@rankllms.com' }
+        const mockUser = { id: 'demo-user', email: 'demo@prowriter.miniai.online' }
         setUser(mockUser)
         await loadArticles(mockUser.id)
       } else {
