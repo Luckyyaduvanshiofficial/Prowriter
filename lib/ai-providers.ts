@@ -26,7 +26,7 @@ export const AI_MODELS: AIModel[] = [
   // OpenRouter Models
   {
     id: 'qwen-72b',
-    name: 'Qwen 2.5 72B',
+    name: 'Qwen 2.5 72B Instruct',
     provider: 'openrouter',
     modelId: 'qwen/qwen-2.5-72b-instruct',
     tier: 'free',

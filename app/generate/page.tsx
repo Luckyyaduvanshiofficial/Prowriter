@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Slider } from "@/components/ui/slider"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
+import { AppHeader } from "@/components/app-header"
 import { 
   ArrowLeft, 
   Loader2, 
@@ -22,8 +23,9 @@ import {
   Zap
 } from "lucide-react"
 import Link from "next/link"
+import { getAvailableModels, AI_MODELS, getModelById } from "@/lib/ai-providers"
 
-const AI_MODELS = [
+const AI_MODEL_NAMES = [
   "GPT-4",
   "GPT-4 Turbo", 
   "Claude 3.5 Sonnet",
@@ -33,18 +35,11 @@ const AI_MODELS = [
   "Gemini Ultra", 
   "LLaMA 3.1 405B",
   "LLaMA 3.1 70B",
-  "Qwen 2.5 72B",
+  "Qwen 2.5 72B Instruct",
   "DeepSeek V2.5",
   "Mistral Large",
   "Command R+",
   "Perplexity Sonar"
-]
-
-const AI_ENGINES = [
-  { id: "qwen", name: "Qwen 2.5 72B", description: "Balanced and fast" },
-  { id: "llama", name: "LLaMA 3.1 405B", description: "Most intelligent" },
-  { id: "deepseek", name: "DeepSeek V2.5", description: "Code specialist" },
-  { id: "gemini", name: "Gemini Pro", description: "Creative writing" }
 ]
 
 const USE_CASES = [
@@ -61,11 +56,14 @@ export default function GeneratePage() {
   const [generating, setGenerating] = useState(false)
   const [saving, setSaving] = useState(false)
   
+  // Get available models based on user's plan
+  const [availableModels, setAvailableModels] = useState<any[]>([])
+  
   // Form state
   const [modelA, setModelA] = useState("")
   const [modelB, setModelB] = useState("")
   const [useCase, setUseCase] = useState("")
-  const [aiEngine, setAiEngine] = useState("")
+  const [aiEngine, setAiEngine] = useState("qwen-72b")
   const [articleLength, setArticleLength] = useState("medium")
   const [temperature, setTemperature] = useState([0.7])
   
@@ -79,6 +77,25 @@ export default function GeneratePage() {
   useEffect(() => {
     checkUser()
   }, [])
+
+  // Update available models when profile changes
+  useEffect(() => {
+    if (profile) {
+      const userTier = profile.plan === 'pro' ? 'pro' : 'free'
+      const models = getAvailableModels(userTier)
+      setAvailableModels(models)
+      
+      // Set default AI engine if current selection is not available
+      if (!models.some(model => model.id === aiEngine)) {
+        setAiEngine(models[0]?.id || 'qwen-72b')
+      }
+    }
+  }, [profile, aiEngine])
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut()
+    router.push('/')
+  }
 
   const checkUser = async () => {
     try {
@@ -384,19 +401,29 @@ export default function GeneratePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-      {/* Header */}
-      <header className="bg-white/80 backdrop-blur-lg border-b border-gray-200/50 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
+      {/* Use new AppHeader component with AI selector */}
+      <AppHeader
+        user={user}
+        profile={profile}
+        onSignOut={handleSignOut}
+        selectedAIModel={aiEngine}
+        onAIModelChange={setAiEngine}
+        showAISelector={true}
+      />
+
+      {/* Page Navigation */}
+      <div className="bg-white/60 backdrop-blur-sm border-b border-gray-200/50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+          <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <Link href="/dashboard" className="text-blue-600 hover:text-blue-700 transition-colors">
                 <ArrowLeft className="w-5 h-5" />
               </Link>
               <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 rounded-lg bg-gradient-primary flex items-center justify-center">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
                   <Sparkles className="w-4 h-4 text-white" />
                 </div>
-                <h1 className="text-xl font-semibold bg-gradient-primary bg-clip-text text-transparent">
+                <h1 className="text-xl font-semibold text-gray-900">
                   Article Generator
                 </h1>
               </div>
@@ -410,7 +437,7 @@ export default function GeneratePage() {
               </div>
               {profile.plan === 'free' && (
                 <Link href="/pricing">
-                  <Button size="sm" className="bg-gradient-secondary hover:opacity-90 transition-opacity">
+                  <Button size="sm" className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
                     <Crown className="w-4 h-4 mr-2" />
                     Upgrade Pro
                   </Button>
@@ -419,7 +446,7 @@ export default function GeneratePage() {
             </div>
           </div>
         </div>
-      </header>
+      </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Usage Progress */}
@@ -485,7 +512,7 @@ export default function GeneratePage() {
                       <SelectValue placeholder="Select first model" />
                     </SelectTrigger>
                     <SelectContent>
-                      {AI_MODELS.map((model) => (
+                      {AI_MODEL_NAMES.map((model) => (
                         <SelectItem key={model} value={model}>{model}</SelectItem>
                       ))}
                     </SelectContent>
@@ -499,7 +526,7 @@ export default function GeneratePage() {
                       <SelectValue placeholder="Select second model" />
                     </SelectTrigger>
                     <SelectContent>
-                      {AI_MODELS.map((model) => (
+                      {AI_MODEL_NAMES.map((model) => (
                         <SelectItem key={model} value={model}>{model}</SelectItem>
                       ))}
                     </SelectContent>
@@ -532,21 +559,35 @@ export default function GeneratePage() {
               {/* AI Engine */}
               <div className="space-y-2">
                 <Label>AI Writing Engine</Label>
-                <div className="space-y-2">
-                  {AI_ENGINES.map((engine) => (
-                    <Button
-                      key={engine.id}
-                      variant={aiEngine === engine.id ? "default" : "outline"}
-                      className="w-full justify-start h-auto p-4"
-                      onClick={() => setAiEngine(engine.id)}
-                    >
-                      <div className="text-left">
-                        <div className="font-medium">{engine.name}</div>
-                        <div className="text-sm text-gray-600">{engine.description}</div>
-                      </div>
-                    </Button>
-                  ))}
-                </div>
+                <Select value={aiEngine} onValueChange={setAiEngine}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select AI engine" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableModels.map((model) => (
+                      <SelectItem key={model.id} value={model.id}>
+                        <div className="flex items-center justify-between w-full">
+                          <div className="flex flex-col items-start">
+                            <span className="font-medium">{model.name}</span>
+                            <span className="text-xs text-gray-500">{model.description}</span>
+                            <span className="text-xs text-blue-600">{model.provider}</span>
+                          </div>
+                          <div className="flex items-center space-x-2 ml-2">
+                            {model.tier === 'pro' && profile?.plan === 'free' && (
+                              <Crown className="h-4 w-4 text-yellow-500" />
+                            )}
+                            <span className="text-xs text-gray-400">
+                              {model.costPer1000Tokens === 0 ? 'Free' : `$${model.costPer1000Tokens}/1K`}
+                            </span>
+                          </div>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-gray-500">
+                  {getModelById(aiEngine)?.provider && `Using ${getModelById(aiEngine)?.provider} provider`}
+                </p>
               </div>
 
               {/* Article Length */}

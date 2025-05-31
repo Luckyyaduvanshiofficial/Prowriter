@@ -6,6 +6,7 @@ import { useRouter, usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Badge } from "@/components/ui/badge"
+import { AIProviderSelector } from "@/components/ai-provider-selector"
 import { 
   Menu, 
   X, 
@@ -17,16 +18,25 @@ import {
   LogOut,
   Crown,
   Sparkles,
-  ChevronRight
+  ChevronRight,
+  Bot
 } from "lucide-react"
 
 interface MobileNavProps {
   user?: any
   profile?: any
   onSignOut?: () => void
+  selectedAIModel?: string
+  onAIModelChange?: (modelId: string) => void
 }
 
-export function MobileNav({ user, profile, onSignOut }: MobileNavProps) {
+export function MobileNav({ 
+  user, 
+  profile, 
+  onSignOut, 
+  selectedAIModel, 
+  onAIModelChange 
+}: MobileNavProps) {
   const [open, setOpen] = useState(false)
   const pathname = usePathname()
   
@@ -139,6 +149,24 @@ export function MobileNav({ user, profile, onSignOut }: MobileNavProps) {
               )
             })}
           </nav>
+
+          {/* AI Provider Selection */}
+          {user && profile && (
+            <div className="p-4 border-t">
+              <div className="space-y-3">
+                <div className="flex items-center space-x-2 mb-3">
+                  <Bot className="w-5 h-5 text-blue-600" />
+                  <span className="font-medium text-gray-900">AI Engine</span>
+                </div>
+                <AIProviderSelector
+                  selectedModel={selectedAIModel}
+                  onModelSelect={onAIModelChange}
+                  userTier={profile?.plan === 'pro' ? 'pro' : 'free'}
+                  variant="compact"
+                />
+              </div>
+            </div>
+          )}
 
           {/* Quick Actions */}
           {user && profile && (

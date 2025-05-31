@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
+import { AppHeader } from "@/components/app-header"
 import { 
   PenTool, 
   FileText, 
@@ -193,39 +194,12 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-      {/* Header */}
-      <header className="bg-white/80 backdrop-blur-xl border-b border-gray-200 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-4">
-              <Link href="/" className="flex items-center space-x-2">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
-                  <Brain className="w-5 h-5 text-white" />
-                </div>
-                <span className="text-2xl font-bold text-gray-900">Prowriter AI</span>
-              </Link>
-              <Badge 
-                variant={profile.plan === 'free' ? 'secondary' : 'default'}
-                className={profile.plan === 'pro' ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white' : ''}
-              >
-                {profile.plan === 'pro' && <Crown className="w-3 h-3 mr-1" />}
-                {profile.plan.toUpperCase()}
-              </Badge>
-            </div>
-            
-            <div className="flex items-center space-x-3">
-              <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900">
-                <Settings className="w-4 h-4 mr-2" />
-                Settings
-              </Button>
-              <Button variant="ghost" size="sm" onClick={handleSignOut} className="text-gray-600 hover:text-gray-900">
-                <LogOut className="w-4 h-4 mr-2" />
-                Sign Out
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
+      {/* Use new AppHeader component */}
+      <AppHeader
+        user={user}
+        profile={profile}
+        onSignOut={handleSignOut}
+      />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Welcome Section */}

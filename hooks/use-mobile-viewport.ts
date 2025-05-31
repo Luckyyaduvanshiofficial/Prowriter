@@ -1,3 +1,5 @@
+import { useEffect } from 'react';
+
 // Mobile viewport adjustments for better mobile UX
 export const useMobileViewport = () => {
   useEffect(() => {
@@ -21,3 +23,4 @@ export const useMobileViewport = () => {
     };
   }, []);
 };
+
