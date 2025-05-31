@@ -272,6 +272,8 @@ export default function Dashboard() {
               </p>
             </CardContent>
           </Card>
+        </div>
+
         {/* Quick Actions Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
           {/* Create Article */}
