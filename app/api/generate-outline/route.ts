@@ -1,6 +1,5 @@
-import { openai } from "@ai-sdk/openai"
-import { generateText } from "ai"
 import { type NextRequest, NextResponse } from "next/server"
+import { createProviderClient, getModelById, getAvailableModels } from "@/lib/ai-providers"
 
 const OUTLINE_PROMPT = `You are an expert content strategist and SEO specialist. Your task is to create detailed, SEO-optimized article outlines that serve as blueprints for high-quality blog content.
 
@@ -48,37 +47,30 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const { 
-      topic, 
+      topic,
       contentType = "informative",
       articleLength = "medium",
       seoKeywords = "",
       targetAudience = "",
       brandVoice = "friendly",
-      aiEngine = "qwen"
+      aiEngine = "qwen-72b"
     } = body
 
     if (!topic) {
       return NextResponse.json({ error: "Topic is required" }, { status: 400 })
     }
 
-    // Map AI engines to actual models
-    const engineModels = {
-      "qwen": "qwen/qwen-2.5-72b-instruct",
-      "llama": "meta-llama/llama-3.1-405b-instruct",
-      "deepseek": "deepseek/deepseek-coder",
-      "gemini": "google/gemini-pro"
+    // Get the AI model
+    const model = getModelById(aiEngine)
+    if (!model) {
+      return NextResponse.json({ error: "Invalid AI model selected" }, { status: 400 })
     }
 
-    const selectedModel = engineModels[aiEngine] || engineModels["qwen"]
-
-    // Configure OpenRouter
-    const model = openai(selectedModel, {
-      baseURL: "https://openrouter.ai/api/v1",
-      apiKey: process.env.OPENROUTER_API_KEY,
-    })
+    // Create provider client
+    const client = createProviderClient(model.provider)
 
     // Content type specific instructions
-    const contentTypeInstructions = {
+    const contentTypeInstructions: Record<string, string> = {
       "how-to": "Structure as a step-by-step tutorial with clear progression from beginner to completion. Include prerequisites, tools needed, and troubleshooting sections.",
       "guide": "Create a comprehensive educational outline covering fundamentals to advanced concepts. Include background, core concepts, best practices, and practical applications.",
       "comparison": "Focus on detailed comparative analysis structure. Include introduction, individual analysis of each option, direct comparisons, and clear recommendations.",
@@ -87,7 +79,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Article length specifications
-    const lengthSpecs = {
+    const lengthSpecs: Record<string, { words: string; sections: string; depth: string }> = {
       "short": { words: "800-1000", sections: "4-5", depth: "focused and concise" },
       "medium": { words: "1200-1500", sections: "6-8", depth: "comprehensive coverage" },
       "long": { words: "1800-2500", sections: "8-12", depth: "in-depth analysis" },
@@ -103,7 +95,7 @@ export async function POST(request: NextRequest) {
 - Target Length: ${lengthSpec.words} words
 - Number of Sections: ${lengthSpec.sections}
 - Content Depth: ${lengthSpec.depth}
-- Content Type Focus: ${contentTypeInstructions[contentType]}`
+- Content Type Focus: ${contentTypeInstructions[contentType] || contentTypeInstructions["informative"]}`
 
     if (seoKeywords) {
       customPrompt += `\n\n🎯 SEO FOCUS: Primary keywords to target: ${seoKeywords}`
@@ -121,15 +113,25 @@ The outline should be comprehensive enough that any skilled writer could use it 
 
     const finalPrompt = `${customPrompt}\n\n${specificPrompt}`
 
-    const { text } = await generateText({
-      model,
-      prompt: finalPrompt,
-      temperature: 0.3, // Lower temperature for more structured outlines
-      maxTokens: 2000,
+    // Generate outline using the new provider system
+    const response = await client.generateContent({
+      messages: [
+        {
+          role: 'system',
+          content: customPrompt
+        },
+        {
+          role: 'user',
+          content: specificPrompt
+        }
+      ],
+      model: aiEngine,
+      temperature: 0.3,
+      maxTokens: 2000
     })
 
     return NextResponse.json({
-      outline: text,
+      outline: response.content,
       metadata: {
         topic,
         contentType,
@@ -138,11 +140,14 @@ The outline should be comprehensive enough that any skilled writer could use it 
         targetAudience,
         brandVoice,
         aiEngine,
+        provider: response.provider,
         generatedAt: new Date().toISOString(),
       },
     })
   } catch (error) {
     console.error("Outline generation error:", error)
-    return NextResponse.json({ error: "Failed to generate outline" }, { status: 500 })
+    return NextResponse.json({ 
+      error: `Failed to generate outline: ${error.message}` 
+    }, { status: 500 })
   }
 }

@@ -1,6 +1,5 @@
-import { openai } from "@ai-sdk/openai"
-import { generateText } from "ai"
 import { type NextRequest, NextResponse } from "next/server"
+import { createProviderClient, getModelById } from "@/lib/ai-providers"
 
 const MASTER_PROMPT = `You are an experienced SEO blog writer and technical expert in AI and Large Language Models (LLMs). You write for RankLLMs.com, a trusted platform that compares, ranks, and explains AI models in a way that's easy to understand for beginners and insightful for advanced users.
 
@@ -80,8 +79,7 @@ export async function POST(request: NextRequest) {
       topic, 
       modelA, 
       modelB, 
-      useCase,
-      aiEngine = "qwen",
+      aiEngine = "qwen-235B A21B",
       articleLength = "medium",
       tone = "friendly", 
       temperature = 0.7, 
@@ -98,24 +96,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Topic is required" }, { status: 400 })
     }
 
-    // Map AI engines to actual models
-    const engineModels = {
-      "qwen": "qwen/qwen-2.5-72b-instruct",
-      "llama": "meta-llama/llama-3.1-405b-instruct",
-      "deepseek": "deepseek/deepseek-coder",
-      "gemini": "google/gemini-pro"
+    // Get the AI model
+    const model = getModelById(aiEngine)
+    if (!model) {
+      return NextResponse.json({ error: "Invalid AI model selected" }, { status: 400 })
     }
 
-    const selectedModel = engineModels[aiEngine] || engineModels["qwen"]
-
-    // Configure OpenRouter
-    const model = openai(selectedModel, {
-      baseURL: "https://openrouter.ai/api/v1",
-      apiKey: process.env.OPENROUTER_API_KEY,
-    })
+    // Create provider client
+    const client = createProviderClient(model.provider)
 
     // Customize prompt based on article length
-    const lengthInstructions = {
+    const lengthInstructions: Record<string, string> = {
       "short": "Write a focused 800-1000 word article.",
       "medium": "Write a comprehensive 1200-1500 word article.",
       "long": "Write an in-depth 1800-2500 word article with detailed analysis.",
@@ -123,7 +114,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Customize prompt based on content type
-    const contentTypeInstructions = {
+    const contentTypeInstructions: Record<string, string> = {
       "how-to": "Structure as a step-by-step tutorial with clear instructions, prerequisites, and troubleshooting tips. Include numbered steps and practical examples.",
       "guide": "Create a comprehensive educational guide with background information, detailed explanations, best practices, and expert insights.",
       "comparison": "Focus on detailed side-by-side analysis, benchmarks, pros/cons, use case recommendations, and clear verdicts.",
@@ -132,7 +123,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Brand voice adjustments
-    const brandVoiceInstructions = {
+    const brandVoiceInstructions: Record<string, string> = {
       "professional": "Use formal, authoritative language with industry terminology and expert-level insights.",
       "friendly": "Write conversationally with a warm, approachable tone and relatable examples.",
       "technical": "Include detailed technical explanations, specifications, and expert-level analysis.",
@@ -143,9 +134,9 @@ export async function POST(request: NextRequest) {
     let customPrompt = MASTER_PROMPT
 
     // Add length and content type specific instructions
-    customPrompt += `\n\n📏 ARTICLE LENGTH: ${lengthInstructions[articleLength]}`
-    customPrompt += `\n\n📝 CONTENT TYPE: ${contentTypeInstructions[contentType]}`
-    customPrompt += `\n\n🎨 BRAND VOICE: ${brandVoiceInstructions[brandVoice]}`
+    customPrompt += `\n\n📏 ARTICLE LENGTH: ${lengthInstructions[articleLength] || lengthInstructions["medium"]}`
+    customPrompt += `\n\n📝 CONTENT TYPE: ${contentTypeInstructions[contentType] || contentTypeInstructions["informative"]}`
+    customPrompt += `\n\n🎨 BRAND VOICE: ${brandVoiceInstructions[brandVoice] || brandVoiceInstructions["friendly"]}`
 
     // Add SEO and audience targeting
     if (seoKeywords) {
@@ -231,21 +222,38 @@ Educational focus:
 
     const finalPrompt = `${customPrompt}\n\n${specificPrompt}\n\nBegin writing the article now.`
 
-    const { text } = await generateText({
-      model,
-      prompt: finalPrompt,
+    // Generate content using the new provider system
+    const maxTokensMap: Record<string, number> = {
+      "short": 3000,
+      "medium": 4000, 
+      "long": 6000,
+      "epic": 8000
+    }
+
+    const response = await client.generateContent({
+      messages: [
+        {
+          role: 'system',
+          content: customPrompt
+        },
+        {
+          role: 'user',
+          content: specificPrompt
+        }
+      ],
+      model: aiEngine,
       temperature,
-      maxTokens: articleLength === "long" ? 6000 : articleLength === "medium" ? 4000 : 3000,
+      maxTokens: maxTokensMap[articleLength] || 4000
     })
 
     return NextResponse.json({
-      content: text,
+      content: response.content,
       metadata: {
         topic,
         modelA,
         modelB,
-        useCase,
         aiEngine,
+        provider: response.provider,
         articleLength,
         tone,
         temperature,
@@ -256,10 +264,14 @@ Educational focus:
         includeWebSearch,
         includeSerpAnalysis,
         generatedAt: new Date().toISOString(),
+        usage: response.usage
       },
     })
   } catch (error) {
     console.error("Content generation error:", error)
-    return NextResponse.json({ error: "Failed to generate content" }, { status: 500 })
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred'
+    return NextResponse.json({ 
+      error: `Failed to generate content: ${errorMessage}` 
+    }, { status: 500 })
   }
 }

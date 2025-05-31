@@ -36,13 +36,7 @@ import {
   Settings
 } from "lucide-react"
 import Link from "next/link"
-
-const AI_ENGINES = [
-  { id: "qwen", name: "Qwen 2.5 72B", description: "Balanced and fast", tier: "free" },
-  { id: "llama", name: "LLaMA 3.1 405B", description: "Most intelligent", tier: "pro" },
-  { id: "deepseek", name: "DeepSeek V2.5", description: "Code specialist", tier: "free" },
-  { id: "gemini", name: "Gemini Pro", description: "Creative writing", tier: "pro" }
-]
+import { getAvailableModels, AI_MODELS, getModelById } from "@/lib/ai-providers"
 
 const ARTICLE_TYPES = [
   { 
@@ -105,10 +99,14 @@ export default function BlogWriterPage() {
   const [saving, setSaving] = useState(false)
   const [generatingOutline, setGeneratingOutline] = useState(false)
   
+  // Get available models based on user's plan
+  const [availableModels, setAvailableModels] = useState<any[]>([])
+  const [selectedProvider, setSelectedProvider] = useState<string>('all')
+  
   // Form state
   const [articleType, setArticleType] = useState("comparison")
   const [topic, setTopic] = useState("")
-  const [aiEngine, setAiEngine] = useState("qwen")
+  const [aiEngine, setAiEngine] = useState("qwen-72b")
   const [contentLength, setContentLength] = useState("medium")
   const [brandVoice, setBrandVoice] = useState("friendly")
   const [seoKeywords, setSeoKeywords] = useState("")
@@ -135,6 +133,26 @@ export default function BlogWriterPage() {
   useEffect(() => {
     checkUser()
   }, [])
+
+  // Update available models when profile changes
+  useEffect(() => {
+    if (profile) {
+      const userTier = profile.plan === 'pro' ? 'pro' : 'free'
+      let models = getAvailableModels(userTier)
+      
+      // Filter by provider if not 'all'
+      if (selectedProvider !== 'all') {
+        models = models.filter(model => model.provider.toLowerCase() === selectedProvider.toLowerCase())
+      }
+      
+      setAvailableModels(models)
+      
+      // Set default AI engine if current selection is not available
+      if (!models.some(model => model.id === aiEngine)) {
+        setAiEngine(models[0]?.id || 'qwen-72b')
+      }
+    }
+  }, [profile, aiEngine, selectedProvider])
 
   const checkUser = async () => {
     try {
@@ -699,6 +717,40 @@ ${articleType === 'comparison' ? `
                       />
                     </div>
 
+                    {/* AI Provider Selection */}
+                    <div>
+                      <Label>AI Provider</Label>
+                      <Select value={selectedProvider} onValueChange={setSelectedProvider}>
+                        <SelectTrigger className="mt-1">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Providers</SelectItem>
+                          <SelectItem value="openrouter">
+                            <div className="flex items-center space-x-2">
+                              <span>OpenRouter</span>
+                              <Badge variant="secondary" className="text-xs">Multiple Models</Badge>
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="google">
+                            <div className="flex items-center space-x-2">
+                              <span>Google AI</span>
+                              <Badge variant="secondary" className="text-xs">Gemini</Badge>
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="together">
+                            <div className="flex items-center space-x-2">
+                              <span>Together.ai</span>
+                              <Badge variant="secondary" className="text-xs">Free Models</Badge>
+                            </div>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Filter models by AI provider
+                      </p>
+                    </div>
+
                     {/* AI Engine Selection */}
                     <div>
                       <Label>AI Engine</Label>
@@ -707,18 +759,30 @@ ${articleType === 'comparison' ? `
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {AI_ENGINES.map((engine) => (
-                            <SelectItem key={engine.id} value={engine.id}>
+                          {availableModels.map((model) => (
+                            <SelectItem key={model.id} value={model.id}>
                               <div className="flex items-center justify-between w-full">
-                                <span>{engine.name}</span>
-                                {engine.tier === 'pro' && profile.plan === 'free' && (
-                                  <Crown className="h-4 w-4 text-yellow-500 ml-2" />
-                                )}
+                                <div className="flex flex-col items-start">
+                                  <span className="font-medium">{model.name}</span>
+                                  <span className="text-xs text-gray-500">{model.description}</span>
+                                  <span className="text-xs text-blue-600">{model.provider}</span>
+                                </div>
+                                <div className="flex items-center space-x-2 ml-2">
+                                  {model.tier === 'pro' && profile?.plan === 'free' && (
+                                    <Crown className="h-4 w-4 text-yellow-500" />
+                                  )}
+                                  <span className="text-xs text-gray-400">
+                                    {model.costPer1000Tokens === 0 ? 'Free' : `$${model.costPer1000Tokens}/1K`}
+                                  </span>
+                                </div>
                               </div>
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {getModelById(aiEngine)?.provider && `Using ${getModelById(aiEngine)?.provider} provider`}
+                      </p>
                     </div>
 
                     {/* Content Length */}
