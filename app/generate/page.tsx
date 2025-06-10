@@ -11,6 +11,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Slider } from "@/components/ui/slider"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
+import { Textarea } from "@/components/ui/textarea"
+import { Switch } from "@/components/ui/switch"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { AppHeader } from "@/components/app-header"
 import { 
   ArrowLeft, 
@@ -20,7 +24,14 @@ import {
   Copy, 
   Download,
   Crown,
-  Zap
+  Zap,
+  Globe,
+  Search,
+  TrendingUp,
+  Settings,
+  ChevronDown,
+  ChevronUp,
+  Info
 } from "lucide-react"
 import Link from "next/link"
 import { getAvailableModels, AI_MODELS, getModelById } from "@/lib/ai-providers"
@@ -71,6 +82,17 @@ export default function GeneratePage() {
   const [generatedContent, setGeneratedContent] = useState("")
   const [articleTitle, setArticleTitle] = useState("")
   const [metaDescription, setMetaDescription] = useState("")
+  const [webResearchMetadata, setWebResearchMetadata] = useState<any>(null)
+  
+  // Web search features
+  const [includeWebSearch, setIncludeWebSearch] = useState(false)
+  const [includeSerpAnalysis, setIncludeSerpAnalysis] = useState(false)
+  const [webSearchDepth, setWebSearchDepth] = useState(5)
+  const [includeRecentNews, setIncludeRecentNews] = useState(false)
+  const [seoKeywords, setSeoKeywords] = useState("")
+  const [targetAudience, setTargetAudience] = useState("")
+  const [contentType, setContentType] = useState("comparison")
+  const [brandVoice, setBrandVoice] = useState("friendly")
   
   const router = useRouter()
 
@@ -267,14 +289,20 @@ export default function GeneratePage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          topic,
+          topic: `${modelA} vs ${modelB}: ${useCase}`,
           modelA,
           modelB,
-          useCase,
           aiEngine,
           articleLength,
           temperature: temperature[0],
-          contentType: "comparison"
+          contentType,
+          seoKeywords,
+          targetAudience,
+          brandVoice,
+          includeWebSearch,
+          includeSerpAnalysis,
+          webSearchDepth,
+          includeRecentNews
         }),
       })
 
@@ -285,12 +313,19 @@ export default function GeneratePage() {
       const data = await response.json()
       setGeneratedContent(data.content)
       
+      // Capture web research metadata if available
+      if (data.metadata?.webResearch) {
+        setWebResearchMetadata(data.metadata.webResearch)
+      } else {
+        setWebResearchMetadata(null)
+      }
+      
       // Extract title and meta description from content
       const titleMatch = data.content.match(/<h1[^>]*>(.*?)<\/h1>/)
-      const metaMatch = data.content.match(/<meta[^>]*name="description"[^>]*content="([^"]*)"/)
+      const metaMatch = data.content.match(/<!-- Meta Description: ([^-]*) -->/)
       
       setArticleTitle(titleMatch ? titleMatch[1].replace(/<[^>]*>/g, '') : `${modelA} vs ${modelB}`)
-      setMetaDescription(metaMatch ? metaMatch[1] : '')
+      setMetaDescription(metaMatch ? metaMatch[1].trim() : '')
 
       // Update user's daily count
       await supabase
@@ -622,6 +657,173 @@ export default function GeneratePage() {
                 </div>
               </div>
 
+              {/* Content Type */}
+              <div className="space-y-2">
+                <Label>Content Type</Label>
+                <Select value={contentType} onValueChange={setContentType}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="comparison">Model Comparison</SelectItem>
+                    <SelectItem value="guide">Comprehensive Guide</SelectItem>
+                    <SelectItem value="how-to">How-to Tutorial</SelectItem>
+                    <SelectItem value="news">News Article</SelectItem>
+                    <SelectItem value="informative">Informative Content</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Brand Voice */}
+              <div className="space-y-2">
+                <Label>Brand Voice</Label>
+                <Select value={brandVoice} onValueChange={setBrandVoice}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="friendly">Friendly & Conversational</SelectItem>
+                    <SelectItem value="professional">Professional</SelectItem>
+                    <SelectItem value="technical">Technical & Detailed</SelectItem>
+                    <SelectItem value="casual">Casual & Approachable</SelectItem>
+                    <SelectItem value="journalistic">Journalistic</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Web Research Features */}
+              <Collapsible defaultOpen={false}>
+                <CollapsibleTrigger asChild>
+                  <Button variant="outline" className="w-full justify-between" type="button">
+                    <div className="flex items-center space-x-2">
+                      <Globe className="w-4 h-4" />
+                      <span>Web Research & SEO</span>
+                      {profile?.plan === 'free' && (
+                        <Crown className="w-4 h-4 text-yellow-500" />
+                      )}
+                    </div>
+                    <ChevronDown className="w-4 h-4" />
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="space-y-4 mt-4">
+                  {/* Web Search Toggle */}
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <Label className="flex items-center space-x-2">
+                        <Search className="w-4 h-4" />
+                        <span>Real-time Web Research</span>
+                      </Label>
+                      <p className="text-xs text-gray-500">
+                        Include latest information from web search
+                      </p>
+                    </div>
+                    <Switch
+                      checked={includeWebSearch}
+                      onCheckedChange={setIncludeWebSearch}
+                      disabled={profile?.plan === 'free'}
+                    />
+                  </div>
+
+                  {/* SERP Analysis Toggle */}
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <Label className="flex items-center space-x-2">
+                        <TrendingUp className="w-4 h-4" />
+                        <span>SERP Optimization</span>
+                      </Label>
+                      <p className="text-xs text-gray-500">
+                        Analyze top-ranking content for better SEO
+                      </p>
+                    </div>
+                    <Switch
+                      checked={includeSerpAnalysis}
+                      onCheckedChange={setIncludeSerpAnalysis}
+                      disabled={profile?.plan === 'free'}
+                    />
+                  </div>
+
+                  {/* Recent News Toggle */}
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <Label>Include Recent News</Label>
+                      <p className="text-xs text-gray-500">
+                        Focus on content from the last month
+                      </p>
+                    </div>
+                    <Switch
+                      checked={includeRecentNews}
+                      onCheckedChange={setIncludeRecentNews}
+                      disabled={profile?.plan === 'free' || !includeWebSearch}
+                    />
+                  </div>
+
+                  {/* Search Depth */}
+                  {includeWebSearch && (
+                    <div className="space-y-2">
+                      <Label>Research Depth: {webSearchDepth} sources</Label>
+                      <Slider
+                        value={[webSearchDepth]}
+                        onValueChange={(value) => setWebSearchDepth(value[0])}
+                        max={10}
+                        min={3}
+                        step={1}
+                        className="w-full"
+                        disabled={profile?.plan === 'free'}
+                      />
+                      <div className="flex justify-between text-xs text-gray-500">
+                        <span>Quick (3)</span>
+                        <span>Comprehensive (10)</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* SEO Keywords */}
+                  <div className="space-y-2">
+                    <Label htmlFor="seoKeywords">SEO Keywords</Label>
+                    <Input
+                      id="seoKeywords"
+                      placeholder="e.g., AI models, machine learning, comparison"
+                      value={seoKeywords}
+                      onChange={(e) => setSeoKeywords(e.target.value)}
+                    />
+                    <p className="text-xs text-gray-500">
+                      Comma-separated keywords to naturally include
+                    </p>
+                  </div>
+
+                  {/* Target Audience */}
+                  <div className="space-y-2">
+                    <Label htmlFor="targetAudience">Target Audience</Label>
+                    <Input
+                      id="targetAudience"
+                      placeholder="e.g., developers, business leaders, researchers"
+                      value={targetAudience}
+                      onChange={(e) => setTargetAudience(e.target.value)}
+                    />
+                    <p className="text-xs text-gray-500">
+                      Who is this content primarily for?
+                    </p>
+                  </div>
+
+                  {/* Free Plan Info */}
+                  {profile?.plan === 'free' && (
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                      <div className="flex items-start space-x-2">
+                        <Info className="w-4 h-4 text-amber-600 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-medium text-amber-800">
+                            Upgrade to unlock web research
+                          </p>
+                          <p className="text-xs text-amber-700 mt-1">
+                            Get real-time data, SERP analysis, and advanced SEO features
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </CollapsibleContent>
+              </Collapsible>
+
               {/* Generate Button */}
               <Button 
                 onClick={handleGenerate} 
@@ -654,6 +856,46 @@ export default function GeneratePage() {
             <CardContent>
               {generatedContent ? (
                 <div className="space-y-4">
+                  {/* Web Research Metadata */}
+                  {webResearchMetadata && (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                      <div className="flex items-center space-x-2 mb-3">
+                        <Globe className="w-4 h-4 text-green-600" />
+                        <h4 className="font-medium text-green-800">Web Research Summary</h4>
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                        <div className="text-center">
+                          <div className="font-semibold text-green-800">{webResearchMetadata.totalResults}</div>
+                          <div className="text-green-600">Total Results</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="font-semibold text-green-800">{webResearchMetadata.sourcesFound}</div>
+                          <div className="text-green-600">Sources Found</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="font-semibold text-green-800">{webResearchMetadata.contentScraped}</div>
+                          <div className="text-green-600">Pages Analyzed</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="font-semibold text-green-800">{webResearchMetadata.uniqueDomains}</div>
+                          <div className="text-green-600">Unique Domains</div>
+                        </div>
+                      </div>
+                      {webResearchMetadata.keyTopics && webResearchMetadata.keyTopics.length > 0 && (
+                        <div className="mt-3">
+                          <div className="text-xs font-medium text-green-700 mb-2">Key Research Topics:</div>
+                          <div className="flex flex-wrap gap-1">
+                            {webResearchMetadata.keyTopics.slice(0, 8).map((topic: string, index: number) => (
+                              <Badge key={index} variant="secondary" className="text-xs bg-green-100 text-green-700">
+                                {topic}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {/* Article Actions */}
                   <div className="flex space-x-2 border-b pb-4">
                     <Button onClick={handleSave} disabled={saving} size="sm">
@@ -677,6 +919,14 @@ export default function GeneratePage() {
                 <div className="text-center py-12 text-gray-500">
                   <Sparkles className="w-12 h-12 mx-auto mb-4 text-gray-400" />
                   <p>Configure your article settings and click "Generate Article" to see the preview</p>
+                  {includeWebSearch && profile?.plan !== 'free' && (
+                    <div className="mt-4 text-sm">
+                      <div className="flex items-center justify-center space-x-2 text-blue-600">
+                        <Globe className="w-4 h-4" />
+                        <span>Web research enabled - Latest data will be included</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </CardContent>

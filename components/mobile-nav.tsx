@@ -48,6 +48,12 @@ export function MobileNav({
       description: 'Overview & stats'
     },
     {
+      name: 'Research Tool',
+      href: '/research',
+      icon: Brain,
+      description: 'Web search & scraping'
+    },
+    {
       name: 'Blog Writer',
       href: '/blog-writer',
       icon: PenTool,

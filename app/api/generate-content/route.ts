@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createProviderClient, getModelById } from "@/lib/ai-providers"
+import { createWebResearcher, type WebSearchOptions } from "@/lib/web-search"
 
 const MASTER_PROMPT = `You are an expert content strategist and SEO blog writer specializing in AI technology. You create comprehensive, engaging content for Prowriter AI (prowriter.miniai.online), a leading platform for AI model analysis and insights.
 
@@ -202,7 +203,9 @@ export async function POST(request: NextRequest) {
       customInstructions = "",
       brandVoice = "friendly",
       includeWebSearch = false,
-      includeSerpAnalysis = false
+      includeSerpAnalysis = false,
+      webSearchDepth = 5,
+      includeRecentNews = false
     } = body
 
     if (!topic) {
@@ -217,6 +220,103 @@ export async function POST(request: NextRequest) {
 
     // Create provider client
     const client = createProviderClient(model.provider)
+
+    // Initialize web research if enabled
+    let webResearchData = null
+    let webResearchContext = ""
+    
+    if (includeWebSearch) {
+      try {
+        const researcher = createWebResearcher()
+        
+        // Build comprehensive search query
+        let searchQuery = topic
+        if (modelA && modelB && contentType === "comparison") {
+          searchQuery = `${modelA} vs ${modelB} ${topic} comparison 2024`
+        } else if (contentType === "news") {
+          searchQuery = `${topic} latest news updates 2024`
+        } else if (seoKeywords) {
+          searchQuery = `${topic} ${seoKeywords}`
+        }
+
+        // Research options
+        const researchOptions = {
+          maxResults: webSearchDepth,
+          maxScrapes: Math.min(webSearchDepth, 5),
+          includeContent: true,
+          searchOptions: {
+            country: "us",
+            language: "en",
+            timeRange: includeRecentNews ? ("month" as const) : ("year" as const)
+          }
+        }
+
+        console.log(`🔍 Starting web research for: ${searchQuery}`)
+        
+        // Perform comprehensive research
+        webResearchData = await researcher.researchTopic(searchQuery, researchOptions)
+        
+        if (webResearchData && webResearchData.searchResults.length > 0) {
+          console.log(`✅ Web research completed: ${webResearchData.searchResults.length} sources found`)
+          
+          // Build research context for AI prompt
+          webResearchContext = `\n\n🌐 LATEST WEB RESEARCH DATA:
+Based on recent web research, here are the key insights to incorporate:
+
+📊 RESEARCH SUMMARY:
+- Total Results Found: ${webResearchData.summary.totalResults}
+- Content Analyzed: ${webResearchData.summary.totalWordCount} words
+- Unique Sources: ${webResearchData.summary.uniqueDomains.length} domains
+- Key Topics: ${webResearchData.summary.keyTopics.join(', ')}
+
+📰 TOP SEARCH RESULTS (${webResearchData.searchResults.length} found):
+${webResearchData.searchResults.slice(0, 5).map((result, index) => 
+  `${index + 1}. **${result.title}**
+     URL: ${result.url}
+     Snippet: ${result.snippet}
+     Domain: ${result.domain}`
+).join('\n\n')}
+
+📋 SCRAPED CONTENT INSIGHTS:
+${webResearchData.scrapedContent.length > 0 ? 
+  webResearchData.scrapedContent.slice(0, 3).map((content, index) => 
+    `${index + 1}. **${content.title}**
+       Content Preview: ${content.text.substring(0, 300)}...
+       Word Count: ${content.wordCount}
+       Key Headings: ${[...content.headings.h1, ...content.headings.h2].slice(0, 3).join(', ')}`
+  ).join('\n\n') : 
+  'No detailed content was scraped, but search results provide valuable context.'
+}
+
+💡 KEY TOPICS TO INCLUDE:
+${webResearchData.summary.keyTopics.slice(0, 10).join(', ')}
+
+🎯 INTEGRATION INSTRUCTIONS:
+- Incorporate these findings naturally throughout your article
+- Use specific data points and statistics from the research
+- Reference recent developments and current market conditions
+- Include relevant insights from the scraped content
+- Ensure all information is current and fact-based
+- Add source credibility to your analysis
+
+🔍 SERP ANALYSIS INSIGHTS:
+${includeSerpAnalysis ? `
+- Structure headings to compete with top-ranking content: ${webResearchData.scrapedContent.map(c => c.headings.h2.slice(0, 2)).flat().join(', ')}
+- Include FAQ sections that address common search queries
+- Use semantic keywords found in competitor content: ${webResearchData.summary.keyTopics.slice(0, 5).join(', ')}
+- Optimize for featured snippet opportunities
+- Address search intent comprehensively based on current rankings
+` : 'SERP analysis not enabled'}
+
+IMPORTANT: Use this research data to enhance your content with current, factual information while maintaining the required HTML structure.`
+        } else {
+          console.log('⚠️ No web research data found, proceeding with standard content generation')
+        }
+      } catch (webError) {
+        console.error('Web research failed:', webError)
+        webResearchContext = "\n\n⚠️ Web research was requested but encountered an error. Proceeding with standard content generation based on your training data."
+      }
+    }
 
     // Customize prompt based on article length with HTML structure requirements
     const lengthInstructions: Record<string, string> = {
@@ -376,13 +476,18 @@ export async function POST(request: NextRequest) {
       customPrompt += `\n\n📋 SPECIAL INSTRUCTIONS: ${customInstructions}`
     }
 
+    // Add web research context if available
+    if (webResearchContext) {
+      customPrompt += webResearchContext
+    }
+
     // Add web search context if enabled (PRO feature simulation)
-    if (includeWebSearch) {
+    if (includeWebSearch && !webResearchContext) {
       customPrompt += `\n\n🌐 WEB SEARCH CONTEXT: Include latest industry trends, recent developments, and current market insights in your analysis.`
     }
 
     // Add SERP analysis if enabled (PRO feature simulation)
-    if (includeSerpAnalysis) {
+    if (includeSerpAnalysis && !webResearchContext) {
       customPrompt += `\n\n🔍 SERP OPTIMIZATION: Structure content to compete with top-ranking articles, include FAQ sections optimized for featured snippets, and use heading structures that perform well in search results.`
     }
 
@@ -628,6 +733,16 @@ Use proper HTML formatting throughout with semantic structure and engaging conte
         brandVoice,
         includeWebSearch,
         includeSerpAnalysis,
+        webSearchDepth,
+        includeRecentNews,
+        webResearch: webResearchData ? {
+          totalResults: webResearchData.summary.totalResults,
+          totalWordCount: webResearchData.summary.totalWordCount,
+          uniqueDomains: webResearchData.summary.uniqueDomains.length,
+          keyTopics: webResearchData.summary.keyTopics.slice(0, 10),
+          sourcesFound: webResearchData.searchResults.length,
+          contentScraped: webResearchData.scrapedContent.length
+        } : null,
         generatedAt: new Date().toISOString(),
         usage: response.usage
       },

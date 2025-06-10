@@ -26,6 +26,77 @@ interface GeneratedContentProps {
 export function GeneratedContent({ article }: GeneratedContentProps) {
   const [activeTab, setActiveTab] = useState("preview")
 
+  // Function to sanitize and enhance content display
+  const sanitizeContent = (content: string): string => {
+    let sanitized = content
+    
+    // Remove AI-style star symbols and artifacts
+    sanitized = sanitized.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>') // Convert **text** to <strong>
+    sanitized = sanitized.replace(/\*([^*]+)\*/g, '<em>$1</em>') // Convert *text* to <em>
+    sanitized = sanitized.replace(/^\*\s*/gm, '') // Remove bullet point stars at line start
+    sanitized = sanitized.replace(/\s\*\s/g, ' ') // Remove orphaned stars
+    
+    // Remove markdown-style headings if any leaked through
+    sanitized = sanitized.replace(/^#{1,6}\s+/gm, '') // Remove ### heading markers
+    
+    // Improve spacing around headings
+    sanitized = sanitized.replace(/(<\/h[1-6]>)/g, '$1\n')
+    sanitized = sanitized.replace(/(<h[1-6][^>]*>)/g, '\n$1')
+    
+    // Ensure proper spacing around paragraphs
+    sanitized = sanitized.replace(/(<\/p>)(<p>)/g, '$1\n$2')
+    
+    // Clean up multiple consecutive line breaks
+    sanitized = sanitized.replace(/\n{3,}/g, '\n\n')
+    
+    // Ensure tables have proper styling if not already present
+    sanitized = sanitized.replace(
+      /<table(?![^>]*style=)/g, 
+      '<table style="width: 100%; border-collapse: collapse; margin: 20px 0; border: 1px solid #e5e7eb;"'
+    )
+    
+    // Enhance blockquotes if not already styled
+    sanitized = sanitized.replace(
+      /<blockquote(?![^>]*style=)/g,
+      '<blockquote style="border-left: 4px solid #3b82f6; padding: 16px; margin: 20px 0; background-color: #f8fafc; font-style: italic;"'
+    )
+    
+    // Add proper spacing around divs with background
+    sanitized = sanitized.replace(
+      /<div style="[^"]*background-color[^"]*">/g,
+      (match) => match.replace('margin: 20px 0;', 'margin: 24px 0;')
+    )
+    
+    return sanitized.trim()
+  }
+
+  // Function to extract summary or key points from content
+  const extractSummary = (content: string): string | null => {
+    const sanitized = sanitizeContent(content)
+    
+    // Look for summary sections (using compatible regex flags)
+    const summaryMatch = sanitized.match(/<h[2-4][^>]*>.*?summary.*?<\/h[2-4]>([\s\S]*?)(?=<h[1-4]|$)/i)
+    if (summaryMatch) {
+      return summaryMatch[1].trim()
+    }
+    
+    // Look for key points or takeaways
+    const keyPointsMatch = sanitized.match(/<h[2-4][^>]*>.*?(key points|takeaways|highlights).*?<\/h[2-4]>([\s\S]*?)(?=<h[1-4]|$)/i)
+    if (keyPointsMatch) {
+      return keyPointsMatch[1].trim()
+    }
+    
+    // Extract first paragraph as fallback
+    const firstParagraph = sanitized.match(/<p[^>]*>([\s\S]*?)<\/p>/i)
+    if (firstParagraph && firstParagraph[1].length > 100) {
+      return firstParagraph[1].trim()
+    }
+    
+    return null
+  }
+
+  const summary = extractSummary(article.content)
+
   const copyToClipboard = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text)
@@ -59,7 +130,9 @@ export function GeneratedContent({ article }: GeneratedContentProps) {
   }
 
   const getWordCount = (text: string) => {
-    return text.split(/\s+/).filter((word) => word.length > 0).length
+    // Remove HTML tags for accurate word count
+    const plainText = text.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
+    return plainText.split(/\s+/).filter((word) => word.length > 0).length
   }
 
   return (
@@ -73,11 +146,11 @@ export function GeneratedContent({ article }: GeneratedContentProps) {
               <CardDescription>Created on {formatDate(article.metadata.generatedAt)}</CardDescription>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => copyToClipboard(article.content)}>
+              <Button variant="outline" size="sm" onClick={() => copyToClipboard(sanitizeContent(article.content))}>
                 <Copy className="h-4 w-4 mr-2" />
                 Copy
               </Button>
-              <Button variant="outline" size="sm" onClick={() => downloadAsFile(article.content, "article.html")}>
+              <Button variant="outline" size="sm" onClick={() => downloadAsFile(sanitizeContent(article.content), "article.html")}>
                 <Download className="h-4 w-4 mr-2" />
                 Download
               </Button>
@@ -101,6 +174,16 @@ export function GeneratedContent({ article }: GeneratedContentProps) {
           <div className="text-sm text-gray-600 mt-2">
             <strong>Topic:</strong> {article.metadata.topic}
           </div>
+
+          {summary && (
+            <div className="mt-4 p-4 bg-blue-50 rounded-lg border-l-4 border-blue-500">
+              <h4 className="font-semibold text-gray-900 mb-2">Content Summary</h4>
+              <div 
+                className="text-sm text-gray-700 prose prose-sm"
+                dangerouslySetInnerHTML={{ __html: summary }}
+              />
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -119,8 +202,27 @@ export function GeneratedContent({ article }: GeneratedContentProps) {
 
         <TabsContent value="preview">
           <Card>
-            <CardContent className="p-6">
-              <div className="prose prose-lg max-w-none" dangerouslySetInnerHTML={{ __html: article.content }} />
+            <CardContent className="p-0">
+              <div 
+                className="
+                  prose prose-lg max-w-none 
+                  prose-headings:font-bold prose-headings:text-gray-900
+                  prose-h1:text-3xl prose-h1:mb-6 prose-h1:mt-0
+                  prose-h2:text-2xl prose-h2:mb-4 prose-h2:mt-8 prose-h2:border-b prose-h2:border-gray-200 prose-h2:pb-2
+                  prose-h3:text-xl prose-h3:mb-3 prose-h3:mt-6
+                  prose-h4:text-lg prose-h4:mb-2 prose-h4:mt-4
+                  prose-p:mb-4 prose-p:leading-relaxed
+                  prose-strong:font-semibold prose-strong:text-gray-900
+                  prose-table:w-full prose-table:border-collapse prose-table:my-6
+                  prose-th:border prose-th:border-gray-300 prose-th:bg-gray-50 prose-th:p-3 prose-th:text-left prose-th:font-semibold
+                  prose-td:border prose-td:border-gray-300 prose-td:p-3
+                  prose-blockquote:border-l-4 prose-blockquote:border-blue-500 prose-blockquote:pl-4 prose-blockquote:italic prose-blockquote:my-6
+                  prose-ul:my-4 prose-ol:my-4
+                  prose-li:mb-2
+                  p-8
+                "
+                dangerouslySetInnerHTML={{ __html: sanitizeContent(article.content) }} 
+              />
             </CardContent>
           </Card>
         </TabsContent>
@@ -130,15 +232,15 @@ export function GeneratedContent({ article }: GeneratedContentProps) {
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 HTML Source Code
-                <Button variant="outline" size="sm" onClick={() => copyToClipboard(article.content)}>
+                <Button variant="outline" size="sm" onClick={() => copyToClipboard(sanitizeContent(article.content))}>
                   <Copy className="h-4 w-4 mr-2" />
                   Copy HTML
                 </Button>
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <pre className="bg-gray-100 p-4 rounded-lg overflow-x-auto text-sm">
-                <code>{article.content}</code>
+              <pre className="bg-gray-50 p-4 rounded-lg overflow-x-auto text-sm border">
+                <code className="language-html">{sanitizeContent(article.content)}</code>
               </pre>
             </CardContent>
           </Card>

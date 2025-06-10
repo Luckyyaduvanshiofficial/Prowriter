@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createProviderClient, getModelById, getAvailableModels } from "@/lib/ai-providers"
+import { cleanOutlineContent } from "@/lib/outline-formatter"
 
 const OUTLINE_PROMPT = `You are an expert content strategist and SEO specialist. Your task is to create detailed, SEO-optimized article outlines that serve as blueprints for high-quality blog content.
 
@@ -109,7 +110,21 @@ export async function POST(request: NextRequest) {
 
     const specificPrompt = `Create a detailed article outline for: "${topic}"
 
-The outline should be comprehensive enough that any skilled writer could use it to create a high-quality, SEO-optimized article. Include specific guidance for content creation, keyword placement, and reader engagement strategies.`
+CRITICAL FORMATTING REQUIREMENTS:
+- Use proper heading hierarchy: # for main title, ## for sections, ### for subsections
+- Use **bold** for important concepts and key points (NOT asterisks for emphasis)
+- Use bullet points (-) for lists and sub-points
+- Write in clear, professional language (avoid robotic or overly formal tone)
+- Include actionable content guidance for each section
+- DO NOT include any "thinking", meta-commentary, or planning text in your response
+- DO NOT use <thinking> tags or similar internal processing text
+- Focus ONLY on the outline content
+- Start directly with the article title using # heading
+- Make each section engaging and reader-focused
+
+The outline should be comprehensive enough that any skilled writer could use it to create a high-quality, SEO-optimized article. Include specific guidance for content creation, keyword placement, and reader engagement strategies.
+
+Structure the outline with clear sections that flow logically and provide value to readers.`
 
     const finalPrompt = `${customPrompt}\n\n${specificPrompt}`
 
@@ -130,8 +145,11 @@ The outline should be comprehensive enough that any skilled writer could use it 
       maxTokens: 2000
     })
 
+    // Clean the outline content to remove thinking text and improve formatting
+    const cleanedOutline = cleanOutlineContent(response.content)
+
     return NextResponse.json({
-      outline: response.content,
+      outline: cleanedOutline,
       metadata: {
         topic,
         contentType,
@@ -147,7 +165,7 @@ The outline should be comprehensive enough that any skilled writer could use it 
   } catch (error) {
     console.error("Outline generation error:", error)
     return NextResponse.json({ 
-      error: `Failed to generate outline: ${error.message}` 
+      error: `Failed to generate outline: ${error instanceof Error ? error.message : 'Unknown error occurred'}` 
     }, { status: 500 })
   }
 }

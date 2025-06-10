@@ -43,6 +43,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { getAvailableModels, AI_MODELS, getModelById } from "@/lib/ai-providers"
+import { OutlineDisplay } from "@/components/outline-display"
 
 const ARTICLE_TYPES = [
   { 
@@ -1045,8 +1046,11 @@ ${articleType === 'comparison' ? `
                   <CardContent>
                     {generatedOutline ? (
                       <div className="space-y-4">
-                        <div className="bg-gray-50 p-3 lg:p-4 rounded-lg overflow-hidden">
-                          <pre className="whitespace-pre-wrap text-xs sm:text-sm font-mono overflow-x-auto">{generatedOutline}</pre>
+                        <div className="bg-gray-50 p-3 lg:p-4 rounded-lg border">
+                          <OutlineDisplay 
+                            content={generatedOutline}
+                            className="max-h-96 overflow-y-auto"
+                          />
                         </div>
                         
                         <div className="flex flex-col sm:flex-row gap-3">

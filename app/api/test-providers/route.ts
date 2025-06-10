@@ -7,9 +7,9 @@ export async function GET() {
     
     // Test a model from each provider
     const testModels = [
-      'qwen-72b',           // OpenRouter
-      'gemini-2-flash',     // Google AI
-      'llama-3-3-70b-free'  // Together.ai
+      'qwen-235B A22B',     // OpenRouter
+      'gemini-2.0-flash',     // Google AI
+      'llama-3.3-70b-free'  // Together.ai
     ]
     
     for (const modelId of testModels) {

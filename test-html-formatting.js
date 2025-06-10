@@ -1,37 +1,51 @@
 // Test HTML formatting output from the generate-content API
-// This script tests the enhanced HTML output formatting
+// This script tests the enhanced HTML output formatting and display improvements
+
+// Enhanced validation function for our formatting improvements
+const validateHTMLFormatting = (content) => {
+  return {
+    hasHTMLHeadings: /<h[1-6][^>]*>/.test(content),
+    hasStyledTables: /<table[^>]*style=/.test(content),
+    hasStyledBlockquotes: /<blockquote[^>]*style=/.test(content),
+    hasWordPressStructure: content.includes('<!-- Meta Description:') && /<h[1-6]/.test(content),
+    hasProperHeadingHierarchy: /<h1[^>]*>/.test(content) && /<h2[^>]*>/.test(content),
+    noMarkdownArtifacts: !(/\*\*.*?\*\*|\##\s|###\s/.test(content)),
+    noAIStars: !(/^\*\s|\s\*\s/.test(content)),
+    hasRichFormatting: /<strong>/.test(content) && /<p>/.test(content)
+  };
+};
 
 const testHTMLFormatting = async () => {
-  console.log('🧪 Testing HTML Output Formatting...\n');
+  console.log('🧪 Testing Enhanced HTML Output Formatting and Display...\n');
 
   const baseUrl = 'http://localhost:3000';
   const endpoint = '/api/generate-content';
 
-  // Test data
+  // Test data for enhanced formatting
   const testCases = [
     {
-      name: 'Short Comparison Article',
+      name: 'Short WordPress-Style Article (Google AI)',
       payload: {
-        topic: 'AI model performance comparison',
-        modelA: 'GPT-4',
-        modelB: 'Claude-3',
-        aiEngine: 'qwen-72b',
+        topic: 'Essential WordPress SEO plugins',
+        aiEngine: 'gemini-2-flash',
         articleLength: 'short',
-        contentType: 'comparison',
+        contentType: 'guide',
         brandVoice: 'professional',
-        seoKeywords: 'AI models, performance comparison',
-        targetAudience: 'AI developers'
+        seoKeywords: 'WordPress SEO, plugins, optimization',
+        targetAudience: 'bloggers'
       }
     },
     {
-      name: 'Medium How-To Guide',
+      name: 'Medium Technical Comparison (Google AI)',
       payload: {
-        topic: 'Setting up AI model APIs',
-        aiEngine: 'qwen-72b',
+        topic: 'React vs Vue.js performance analysis',
+        modelA: 'React 18',
+        modelB: 'Vue.js 3',
+        aiEngine: 'gemini-2-flash',
         articleLength: 'medium',
-        contentType: 'how-to',
-        brandVoice: 'friendly',
-        seoKeywords: 'AI API setup, configuration',
+        contentType: 'comparison',
+        brandVoice: 'technical',
+        seoKeywords: 'React Vue performance, frontend frameworks',
         targetAudience: 'developers'
       }
     }
@@ -61,70 +75,28 @@ const testHTMLFormatting = async () => {
       if (result.content) {
         console.log('✅ Content generated successfully');
         
-        // Check for HTML formatting compliance
-        const content = result.content;
+        // Enhanced validation for our formatting improvements
+        const validationResults = validateHTMLFormatting(result.content);
         
-        // Check for markdown violations
-        const markdownPatterns = [
-          /\*\*.*?\*\*/g,  // Bold markdown
-          /##\s/g,         // Heading markdown
-          /###\s/g,        // Subheading markdown
-          /\*\s/g,         // Bullet markdown (at start of line)
-          /_.*?_/g,        // Italic markdown
-        ];
+        console.log('\n📊 Enhanced Format Analysis:');
+        console.log(`HTML Headings found: ${validationResults.hasHTMLHeadings ? '✅' : '❌'}`);
+        console.log(`Styled Tables found: ${validationResults.hasStyledTables ? '✅' : '❌'}`);
+        console.log(`Styled Blockquotes found: ${validationResults.hasStyledBlockquotes ? '✅' : '❌'}`);
+        console.log(`WordPress-style structure: ${validationResults.hasWordPressStructure ? '✅' : '❌'}`);
+        console.log(`Proper heading hierarchy: ${validationResults.hasProperHeadingHierarchy ? '✅' : '❌'}`);
+        console.log(`No markdown artifacts: ${validationResults.noMarkdownArtifacts ? '✅' : '❌'}`);
+        console.log(`No AI-style stars: ${validationResults.noAIStars ? '✅' : '❌'}`);
+        console.log(`Rich HTML formatting: ${validationResults.hasRichFormatting ? '✅' : '❌'}`);
         
-        let hasMarkdown = false;
-        markdownPatterns.forEach((pattern, index) => {
-          const matches = content.match(pattern);
-          if (matches) {
-            hasMarkdown = true;
-            console.log(`❌ Found markdown pattern ${index + 1}:`, matches.slice(0, 3));
-          }
-        });
+        // Overall score
+        const totalChecks = Object.keys(validationResults).length;
+        const passedChecks = Object.values(validationResults).filter(Boolean).length;
+        const score = Math.round((passedChecks / totalChecks) * 100);
+        console.log(`\n🎯 Overall HTML Quality Score: ${score}%`);
         
-        if (!hasMarkdown) {
-          console.log('✅ No markdown formatting detected');
-        }
-        
-        // Check for HTML compliance
-        const htmlPatterns = [
-          /<h1>/g,         // H1 tags
-          /<h2>/g,         // H2 tags
-          /<h3>/g,         // H3 tags
-          /<p>/g,          // Paragraph tags
-          /<ul>/g,         // Unordered lists
-          /<li>/g,         // List items
-          /<strong>/g,     // Strong tags
-          /<table>/g,      // Tables
-          /<blockquote>/g, // Blockquotes
-        ];
-        
-        let htmlScore = 0;
-        htmlPatterns.forEach((pattern, index) => {
-          const matches = content.match(pattern);
-          if (matches) {
-            htmlScore++;
-            console.log(`✅ Found HTML pattern ${index + 1}: ${matches.length} instances`);
-          }
-        });
-        
-        console.log(`📊 HTML Compliance Score: ${htmlScore}/${htmlPatterns.length}`);
-        
-        // Check content structure
-        if (content.includes('<!-- Meta Description:')) {
-          console.log('✅ Meta description comment found');
-        } else {
-          console.log('❌ Meta description comment missing');
-        }
-        
-        // Check for table of contents
-        if (content.includes('Table of Contents') || content.includes('<ol>')) {
-          console.log('✅ Table of contents or ordered list found');
-        }
-        
-        // Show content preview (first 500 chars)
+        // Show content preview (first 800 chars for better analysis)
         console.log('\n📄 Content Preview:');
-        console.log(content.substring(0, 500) + '...\n');
+        console.log(result.content.substring(0, 800) + '...\n');
         
         console.log('📊 Metadata:', JSON.stringify(result.metadata, null, 2));
         

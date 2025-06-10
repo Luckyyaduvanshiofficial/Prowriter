@@ -202,6 +202,24 @@ export default function Home() {
               </CardContent>
             </Card>
 
+            {/* Research Tool Feature */}
+            <Card className="border-0 shadow-premium hover:shadow-premium-lg transition-all duration-300 group">
+              <CardHeader className="pb-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
+                  <Globe className="w-6 h-6 text-white" />
+                </div>
+                <CardTitle className="text-xl">Research & Data Mining</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600 leading-relaxed">
+                  Powerful web search and scraping tools to gather comprehensive research data from multiple sources instantly.
+                </p>
+                <Link href="/research" className="inline-flex items-center text-blue-600 hover:text-blue-700 font-medium mt-2 text-sm">
+                  Try Research Tool <ArrowRight className="w-4 h-4 ml-1" />
+                </Link>
+              </CardContent>
+            </Card>
+
             {/* Feature 2 */}
             <Card className="border-0 shadow-premium hover:shadow-premium-lg transition-all duration-300 group">
               <CardHeader className="pb-4">
