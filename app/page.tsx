@@ -5,6 +5,14 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { 
+  SignInButton, 
+  SignUpButton, 
+  UserButton, 
+  SignedIn, 
+  SignedOut,
+  useUser 
+} from "@clerk/nextjs"
+import { 
   CheckCircle, 
   Zap, 
   Trophy, 
@@ -24,16 +32,9 @@ import {
   Crown
 } from "lucide-react"
 import Link from "next/link"
-import { supabase } from "@/lib/supabase"
 
 export default function Home() {
-  const [user, setUser] = useState<any>(null)
-
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user)
-    })
-  }, [])
+  const { user, isSignedIn } = useUser()
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
@@ -66,7 +67,7 @@ export default function Home() {
             </div>
             
             <div className="flex items-center space-x-3">
-              {user ? (
+              {isSignedIn ? (
                 <Link href="/dashboard">
                   <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg">
                     Dashboard
@@ -74,12 +75,12 @@ export default function Home() {
                 </Link>
               ) : (
                 <div className="flex space-x-2">
-                  <Link href="/auth">
+                  <Link href="/sign-in">
                     <Button variant="ghost" className="text-gray-600 hover:text-gray-900">
                       Sign In
                     </Button>
                   </Link>
-                  <Link href="/auth">
+                  <Link href="/sign-up">
                     <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg">
                       Start Free Trial
                     </Button>
@@ -122,7 +123,7 @@ export default function Home() {
             
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16 animate-scale-in">
-              <Link href="/auth">
+              <Link href="/sign-up">
                 <Button 
                   size="lg" 
                   className="px-10 py-6 text-lg bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-premium group"
@@ -199,24 +200,6 @@ export default function Home() {
                 <p className="text-gray-600 leading-relaxed">
                   Compare 85+ AI models including GPT-4, Claude, Gemini, LLaMA, and emerging models with real performance data.
                 </p>
-              </CardContent>
-            </Card>
-
-            {/* Research Tool Feature */}
-            <Card className="border-0 shadow-premium hover:shadow-premium-lg transition-all duration-300 group">
-              <CardHeader className="pb-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
-                  <Globe className="w-6 h-6 text-white" />
-                </div>
-                <CardTitle className="text-xl">Research & Data Mining</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600 leading-relaxed">
-                  Powerful web search and scraping tools to gather comprehensive research data from multiple sources instantly.
-                </p>
-                <Link href="/research" className="inline-flex items-center text-blue-600 hover:text-blue-700 font-medium mt-2 text-sm">
-                  Try Research Tool <ArrowRight className="w-4 h-4 ml-1" />
-                </Link>
               </CardContent>
             </Card>
 
@@ -486,7 +469,7 @@ export default function Home() {
                     <span className="text-gray-700">Export to <strong>HTML/Markdown</strong></span>
                   </li>
                 </ul>
-                <Link href="/auth" className="w-full block">
+                <Link href="/sign-up" className="w-full block">
                   <Button size="lg" variant="outline" className="w-full border-2">
                     Start Free Today
                   </Button>
@@ -535,7 +518,7 @@ export default function Home() {
                     <span className="text-gray-700"><strong>Priority email support</strong></span>
                   </li>
                 </ul>
-                <Link href="/auth" className="w-full block">
+                <Link href="/sign-up" className="w-full block">
                   <Button size="lg" className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg">
                     <Crown className="w-5 h-5 mr-2" />
                     Upgrade to Pro

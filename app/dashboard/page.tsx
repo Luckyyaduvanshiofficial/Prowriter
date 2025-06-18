@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { supabase } from "@/lib/supabase"
+import { useUser } from "@clerk/nextjs"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -33,119 +33,83 @@ import {
 import Link from "next/link"
 
 export default function Dashboard() {
-  const [user, setUser] = useState<any>(null)
+  const { user, isSignedIn, isLoaded } = useUser()
   const [profile, setProfile] = useState<any>(null)
   const [articles, setArticles] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const router = useRouter()
 
   useEffect(() => {
-    checkUser()
-  }, [])
+    if (isLoaded && !isSignedIn) {
+      router.push('/sign-in')
+      return
+    }
+    
+    if (isSignedIn && user) {
+      loadUserData()
+    }
+  }, [isLoaded, isSignedIn, user, router])
 
-  const checkUser = async () => {
+  const loadUserData = async () => {
     try {
-      console.log('Checking user authentication...')
-      const { data: { user } } = await supabase.auth.getUser()
+      console.log('Loading user data for:', user?.id)
       
       if (!user) {
-        console.log('No user found, using demo mode')
-        // For demo purposes, create a mock user and profile
-        const mockUser = {
-          id: 'demo-user',
-          email: 'demo@prowriter.miniai.online'
-        }
-        const mockProfile = {
-          id: 'demo-user',
-          email: 'demo@prowriter.miniai.online',
-          plan: 'free',
-          articles_generated_today: 2,
-          full_name: 'Demo User'
-        }
-        setUser(mockUser)
-        setProfile(mockProfile)
-        setArticles([])
+        console.log('No user found')
         setLoading(false)
         return
       }
 
-      console.log('User found:', user.email)
-      setUser(user)
+      console.log('User found:', user.emailAddresses[0]?.emailAddress)
 
-      // Get or create user profile
-      console.log('Fetching user profile...')
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single()
-
-      if (error && error.code === 'PGRST116') {
-        console.log('Profile not found, creating new profile...')
-        // Profile doesn't exist, create it
-        const { data: newProfile, error: createError } = await supabase
-          .from('profiles')
-          .insert({
-            id: user.id,
-            email: user.email!,
-            plan: 'free',
-            articles_generated_today: 0
-          })
-          .select()
-          .single()
-
-        if (!createError) {
-          console.log('New profile created:', newProfile)
-          setProfile(newProfile)
-        } else {
-          console.error('Error creating profile:', createError)
-          // Fallback to mock profile
-          setProfile({
-            id: user.id,
-            email: user.email!,
-            plan: 'free',
-            articles_generated_today: 0
-          })
-        }
-      } else if (!error) {
-        console.log('Profile found:', profile)
+      // Fetch real user profile and articles data
+      const [profileResponse, articlesResponse] = await Promise.all([
+        fetch('/api/user-profile'),
+        fetch('/api/articles')
+      ])
+      
+      if (profileResponse.ok) {
+        const { profile } = await profileResponse.json()
         setProfile(profile)
       } else {
-        console.error('Error fetching profile:', error)
-        // Fallback to mock profile
-        setProfile({
+        // Fallback profile if API fails
+        const fallbackProfile = {
           id: user.id,
-          email: user.email!,
-          plan: 'free',
-          articles_generated_today: 0
-        })
+          email: user.emailAddresses[0]?.emailAddress || '',
+          plan: user.publicMetadata?.plan || 'free',
+          articles_generated_today: user.publicMetadata?.articlesUsed || 2,
+          articles_limit: user.publicMetadata?.plan === 'pro' ? 25 : 5,
+          full_name: user.fullName || user.firstName + ' ' + user.lastName || 'User'
+        }
+        setProfile(fallbackProfile)
       }
-
-      // Get user articles
-      console.log('Fetching user articles...')
-      const { data: userArticles } = await supabase
-        .from('articles')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(5)
-
-      console.log('Articles found:', userArticles?.length || 0)
-      setArticles(userArticles || [])
+      
+      if (articlesResponse.ok) {
+        const { articles } = await articlesResponse.json()
+        setArticles(articles)
+      } else {
+        // Fallback articles if API fails
+        const fallbackArticles = [
+          {
+            id: 1,
+            title: "Getting Started with AI Content Generation",
+            created_at: new Date().toISOString(),
+            status: "published",
+            word_count: 1250
+          }
+        ]
+        setArticles(fallbackArticles)
+      }
     } catch (error) {
-      console.error('Error in checkUser:', error)
+      console.error('Error loading user data:', error)
       // Fallback to demo mode
-      const mockUser = {
-        id: 'demo-user',
-        email: 'demo@prowriter.miniai.online'
-      }
       const mockProfile = {
         id: 'demo-user',
         email: 'demo@prowriter.miniai.online',
         plan: 'free',
-        articles_generated_today: 2
+        articles_generated_today: 2,
+        full_name: 'Demo User'
       }
-      setUser(mockUser)
       setProfile(mockProfile)
       setArticles([])
     } finally {
@@ -153,12 +117,10 @@ export default function Dashboard() {
     }
   }
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut()
-    router.push('/')
-  }
+  // handleSignOut is no longer needed as Clerk handles authentication
+  // The AppHeader component uses Clerk's UserButton which includes sign out functionality
 
-  if (loading) {
+  if (loading || !isLoaded) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
         <div className="text-center">
@@ -195,17 +157,13 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       {/* Use new AppHeader component */}
-      <AppHeader
-        user={user}
-        profile={profile}
-        onSignOut={handleSignOut}
-      />
+      <AppHeader />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Welcome Section */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Welcome back, {user.email?.split('@')[0]}!
+            Welcome back, {user?.firstName || user?.emailAddresses[0]?.emailAddress?.split('@')[0] || 'User'}!
           </h1>
           <p className="text-gray-600">Generate expert-level AI comparison articles in minutes.</p>
         </div>

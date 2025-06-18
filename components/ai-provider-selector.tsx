@@ -215,7 +215,7 @@ export function AIProviderSelector({
                           <span className="text-xs text-gray-500">
                             {model.costPer1000Tokens === 0 ? 'Free' : `$${model.costPer1000Tokens}/1K`}
                           </span>
-                          {model.features.slice(0, 2).map((feature, idx) => (
+                          {model.features.slice(0, 2).map((feature: string, idx: number) => (
                             <Badge key={idx} variant="outline" className="text-xs">
                               {feature}
                             </Badge>

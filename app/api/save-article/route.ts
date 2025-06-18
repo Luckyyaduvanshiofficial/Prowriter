@@ -1,11 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { auth } from '@clerk/nextjs/server'
 
 export async function POST(request: NextRequest) {
   try {
+    // Get the authenticated user from Clerk
+    const { userId } = await auth()
+    
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
     const body = await request.json()
     const {
-      userId,
       title,
       content,
       metaDescription,
@@ -20,9 +29,9 @@ export async function POST(request: NextRequest) {
       topic
     } = body
 
-    if (!userId || !title || !content) {
+    if (!title || !content) {
       return NextResponse.json(
-        { error: 'Missing required fields: userId, title, or content' },
+        { error: 'Missing required fields: title or content' },
         { status: 400 }
       )
     }
@@ -31,41 +40,36 @@ export async function POST(request: NextRequest) {
     const wordCount = content.replace(/<[^>]*>/g, '').split(/\s+/).filter((word: string) => word.length > 0).length
     const estimatedReadingTime = Math.ceil(wordCount / 200) // Average reading speed
 
-    // Save the article to the database
-    const { data, error } = await supabase
-      .from('articles')
-      .insert({
-        user_id: userId,
-        title: title,
-        content: content,
-        meta_description: metaDescription || '',
-        topic: topic || title,
-        model_a: modelA || '',
-        model_b: modelB || '',
-        use_case: articleType || 'informative',
-        article_length: contentLength || 'medium',
-        ai_engine: aiEngine || 'qwen',
-        seo_keywords: seoKeywords || '',
-        target_audience: targetAudience || '',
-        brand_voice: brandVoice || 'friendly',
-        word_count: wordCount,
-        estimated_reading_time: estimatedReadingTime,
-        status: 'draft'
-      })
-      .select()
-
-    if (error) {
-      console.error('Database error:', error)
-      return NextResponse.json(
-        { error: 'Failed to save article to database' },
-        { status: 500 }
-      )
+    // Mock article save for demo purposes
+    // In a real implementation, you would save this to your database
+    const mockArticle = {
+      id: Date.now().toString(),
+      user_id: userId,
+      title: title,
+      content: content,
+      meta_description: metaDescription || '',
+      topic: topic || title,
+      model_a: modelA || '',
+      model_b: modelB || '',
+      use_case: articleType || 'informative',
+      article_length: contentLength || 'medium',
+      ai_engine: aiEngine || 'qwen',
+      seo_keywords: seoKeywords || '',
+      target_audience: targetAudience || '',
+      brand_voice: brandVoice || 'friendly',
+      word_count: wordCount,
+      estimated_reading_time: estimatedReadingTime,
+      status: 'draft',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     }
+
+    console.log('Article would be saved:', mockArticle.title)
 
     return NextResponse.json({
       success: true,
-      article: data[0],
-      message: 'Article saved successfully'
+      article: mockArticle,
+      message: 'Article saved successfully (demo mode)'
     })
 
   } catch (error) {

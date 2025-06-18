@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Badge } from "@/components/ui/badge"
 import { AIProviderSelector } from "@/components/ai-provider-selector"
+import { useUser, useClerk } from "@clerk/nextjs"
 import { 
   Menu, 
   X, 
@@ -25,7 +26,6 @@ import {
 interface MobileNavProps {
   user?: any
   profile?: any
-  onSignOut?: () => void
   selectedAIModel?: string
   onAIModelChange?: (modelId: string) => void
 }
@@ -33,12 +33,25 @@ interface MobileNavProps {
 export function MobileNav({ 
   user, 
   profile, 
-  onSignOut, 
   selectedAIModel, 
   onAIModelChange 
 }: MobileNavProps) {
   const [open, setOpen] = useState(false)
   const pathname = usePathname()
+  const { user: clerkUser, isSignedIn } = useUser()
+  const { signOut } = useClerk()
+  
+  // Use the passed user prop if available, otherwise use Clerk user
+  const currentUser = user || clerkUser
+  
+  const handleSignOut = async () => {
+    try {
+      await signOut()
+      setOpen(false)
+    } catch (error) {
+      console.error('Error signing out:', error)
+    }
+  }
   
   const navigation = [
     {
@@ -46,12 +59,6 @@ export function MobileNav({
       href: '/dashboard',
       icon: BarChart3,
       description: 'Overview & stats'
-    },
-    {
-      name: 'Research Tool',
-      href: '/research',
-      icon: Brain,
-      description: 'Web search & scraping'
     },
     {
       name: 'Blog Writer',
@@ -107,17 +114,17 @@ export function MobileNav({
           </div>
 
           {/* User Profile Section */}
-          {user && profile && (
+          {isSignedIn && user && profile && (
             <div className="p-4 border-b bg-gray-50">
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
                   <span className="text-white font-medium text-sm">
-                    {profile.full_name?.charAt(0) || profile.email?.charAt(0) || 'U'}
+                    {user.firstName?.charAt(0) || user.emailAddresses?.[0]?.emailAddress?.charAt(0) || 'U'}
                   </span>
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-900 truncate">
-                    {profile.full_name || profile.email}
+                    {user.fullName || user.emailAddresses?.[0]?.emailAddress}
                   </p>
                   <p className="text-xs text-gray-500">
                     {profile.plan === 'pro' ? 'Pro Member' : 'Free Plan'}
@@ -157,7 +164,7 @@ export function MobileNav({
           </nav>
 
           {/* AI Provider Selection */}
-          {user && profile && (
+          {isSignedIn && profile && (
             <div className="p-4 border-t">
               <div className="space-y-3">
                 <div className="flex items-center space-x-2 mb-3">
@@ -189,27 +196,25 @@ export function MobileNav({
                   <Settings className="w-4 h-4 mr-2" />
                   Settings
                 </Button>
-                {onSignOut && (
-                  <Button variant="outline" size="sm" onClick={onSignOut} className="flex-1">
-                    <LogOut className="w-4 h-4 mr-2" />
-                    Sign Out
-                  </Button>
-                )}
+                <Button variant="outline" size="sm" onClick={handleSignOut} className="flex-1">
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Sign Out
+                </Button>
               </div>
             </div>
           )}
 
           {/* Call to Action for Non-Users */}
-          {!user && (
+          {!isSignedIn && (
             <div className="p-4 border-t bg-gray-50 space-y-3">
-              <Link href="/auth" onClick={handleNavClick}>
+              <Link href="/sign-up" onClick={handleNavClick}>
                 <Button className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
                   Get Started Free
                 </Button>
               </Link>
-              <Link href="/pricing" onClick={handleNavClick}>
+              <Link href="/sign-in" onClick={handleNavClick}>
                 <Button variant="outline" className="w-full">
-                  View Pricing
+                  Sign In
                 </Button>
               </Link>
             </div>

@@ -11,7 +11,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Slider } from "@/components/ui/slider"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Loader2, Sparkles } from "lucide-react"
+import { Switch } from "@/components/ui/switch"
+import { Badge } from "@/components/ui/badge"
+import { Loader2, Sparkles, Zap, Star, Target } from "lucide-react"
 
 interface ContentGeneratorProps {
   onGenerate: (params: any) => void
@@ -24,7 +26,14 @@ export function ContentGenerator({ onGenerate, isGenerating }: ContentGeneratorP
   const [modelA, setModelA] = useState("")
   const [modelB, setModelB] = useState("")
   const [tone, setTone] = useState("friendly")
+  const [length, setLength] = useState("medium")
   const [temperature, setTemperature] = useState([0.7])
+  
+  // Next-level generation options
+  const [nextLevel, setNextLevel] = useState(true)
+  const [includeInteractiveElements, setIncludeInteractiveElements] = useState(true)
+  const [addUniqueEnhancements, setAddUniqueEnhancements] = useState(true)
+  const [generateAdvancedMetadata, setGenerateAdvancedMetadata] = useState(true)
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -33,8 +42,14 @@ export function ContentGenerator({ onGenerate, isGenerating }: ContentGeneratorP
       modelA: contentType === "comparison" ? modelA : undefined,
       modelB: contentType === "comparison" ? modelB : undefined,
       tone,
+      length,
       temperature: temperature[0],
       contentType,
+      // Next-level options
+      nextLevel,
+      includeInteractiveElements,
+      addUniqueEnhancements,
+      generateAdvancedMetadata,
     })
   }
 
@@ -157,33 +172,139 @@ export function ContentGenerator({ onGenerate, isGenerating }: ContentGeneratorP
         </div>
 
         <div>
-          <Label htmlFor="temperature">Creativity Level: {temperature[0]}</Label>
-          <Slider
-            id="temperature"
-            min={0.1}
-            max={1.0}
-            step={0.1}
-            value={temperature}
-            onValueChange={setTemperature}
-            className="mt-2"
-          />
-          <div className="flex justify-between text-xs text-gray-500 mt-1">
-            <span>Focused</span>
-            <span>Creative</span>
-          </div>
+          <Label htmlFor="length">Article Length</Label>
+          <Select value={length} onValueChange={setLength}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="short">Short (800-1200 words)</SelectItem>
+              <SelectItem value="medium">Medium (1500-2500 words)</SelectItem>
+              <SelectItem value="long">Long (3000+ words)</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
+
+      <div>
+        <Label htmlFor="temperature">Creativity Level: {temperature[0]}</Label>
+        <Slider
+          id="temperature"
+          min={0.1}
+          max={1.0}
+          step={0.1}
+          value={temperature}
+          onValueChange={setTemperature}
+          className="mt-2"
+        />
+        <div className="flex justify-between text-xs text-gray-500 mt-1">
+          <span>Focused</span>
+          <span>Creative</span>
+        </div>
+      </div>
+
+      {/* Next-Level Generation Options */}
+      <Card className="border-dashed border-2 border-blue-200 bg-blue-50/30">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Zap className="h-5 w-5 text-blue-600" />
+            Next-Level Generation
+            <Badge variant="secondary" className="ml-2">
+              ✨ Premium
+            </Badge>
+          </CardTitle>
+          <CardDescription>
+            Enhanced AI features for professional, engaging content
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Switch
+                id="nextLevel"
+                checked={nextLevel}
+                onCheckedChange={setNextLevel}
+              />
+              <Label htmlFor="nextLevel" className="font-medium">
+                Enable Next-Level Generation
+              </Label>
+            </div>
+            {nextLevel && <Badge variant="outline">Active</Badge>}
+          </div>
+          
+          {nextLevel && (
+            <div className="space-y-3 pl-4 border-l-2 border-blue-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Target className="h-4 w-4 text-green-600" />
+                  <Label htmlFor="interactive" className="text-sm">
+                    Interactive Elements
+                  </Label>
+                </div>
+                <Switch
+                  id="interactive"
+                  checked={includeInteractiveElements}
+                  onCheckedChange={setIncludeInteractiveElements}
+                />
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Star className="h-4 w-4 text-purple-600" />
+                  <Label htmlFor="unique" className="text-sm">
+                    Unique Enhancements
+                  </Label>
+                </div>
+                <Switch
+                  id="unique"
+                  checked={addUniqueEnhancements}
+                  onCheckedChange={setAddUniqueEnhancements}
+                />
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-orange-600" />
+                  <Label htmlFor="metadata" className="text-sm">
+                    Advanced SEO Metadata
+                  </Label>
+                </div>
+                <Switch
+                  id="metadata"
+                  checked={generateAdvancedMetadata}
+                  onCheckedChange={setGenerateAdvancedMetadata}
+                />
+              </div>
+              
+              <div className="text-xs text-gray-600 pt-2">
+                <p>Next-level features include:</p>
+                <ul className="list-disc list-inside mt-1 space-y-1">
+                  <li>Professional formatting with semantic HTML</li>
+                  <li>Interactive checklists and assessments</li>
+                  <li>Unique angles and contrarian viewpoints</li>
+                  <li>Advanced SEO optimization</li>
+                  <li>Social media snippets</li>
+                </ul>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <Button type="submit" className="w-full" size="lg" disabled={isGenerating || !topic}>
         {isGenerating ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Generating Article...
+            {nextLevel ? "Generating Next-Level Article..." : "Generating Article..."}
           </>
         ) : (
           <>
-            <Sparkles className="mr-2 h-4 w-4" />
-            Generate Article
+            {nextLevel ? (
+              <Zap className="mr-2 h-4 w-4" />
+            ) : (
+              <Sparkles className="mr-2 h-4 w-4" />
+            )}
+            {nextLevel ? "Generate Next-Level Article" : "Generate Article"}
           </>
         )}
       </Button>

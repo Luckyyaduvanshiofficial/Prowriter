@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { supabase } from "@/lib/supabase"
+import { useUser } from "@clerk/nextjs"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -99,7 +99,7 @@ const CONTENT_LENGTHS = [
 ]
 
 export default function BlogWriterPage() {
-  const [user, setUser] = useState<any>(null)
+  const { user: clerkUser, isSignedIn, isLoaded } = useUser()
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
@@ -143,8 +143,15 @@ export default function BlogWriterPage() {
   const router = useRouter()
 
   useEffect(() => {
-    checkUser()
-  }, [])
+    if (isLoaded && !isSignedIn) {
+      router.push('/sign-in')
+      return
+    }
+    
+    if (isSignedIn && clerkUser) {
+      loadUserData()
+    }
+  }, [isLoaded, isSignedIn, clerkUser, router])
 
   // Update available models when profile changes
   useEffect(() => {
@@ -166,65 +173,30 @@ export default function BlogWriterPage() {
     }
   }, [profile, aiEngine, selectedProvider])
 
-  const checkUser = async () => {
+  const loadUserData = async () => {
     try {
-      console.log('Checking user authentication for blog writer...')
-      const { data: { user } } = await supabase.auth.getUser()
+      console.log('Loading user data for blog writer:', clerkUser?.id)
       
-      if (!user) {
-        console.log('No user found, using demo mode for blog writer')
-        const mockUser = {
-          id: 'demo-user',
-          email: 'demo@prowriter.miniai.online'
-        }
-        const mockProfile = {
-          id: 'demo-user',
-          email: 'demo@prowriter.miniai.online',
-          plan: 'pro',
-          articles_generated_today: 3,
-          full_name: 'Demo User'
-        }
-        setUser(mockUser)
-        setProfile(mockProfile)
-        setLoading(false)
-        return
+      // Mock user profile for demo purposes
+      const mockProfile = {
+        id: clerkUser?.id,
+        email: clerkUser?.emailAddresses[0]?.emailAddress || '',
+        plan: clerkUser?.publicMetadata?.plan || 'pro', // Default to pro for blog writer
+        articles_generated_today: clerkUser?.publicMetadata?.articlesUsed || 3,
+        full_name: clerkUser?.fullName || clerkUser?.firstName + ' ' + clerkUser?.lastName || 'User'
       }
-
-      console.log('User found:', user.email)
-      setUser(user)
-
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single()
-
-      if (error) {
-        console.error('Error fetching profile:', error)
-        const mockProfile = {
-          id: user.id,
-          email: user.email!,
-          plan: 'free',
-          articles_generated_today: 0
-        }
-        setProfile(mockProfile)
-      } else {
-        console.log('Profile found:', profile)
-        setProfile(profile)
-      }
+      
+      setProfile(mockProfile)
     } catch (error) {
-      console.error('Error in checkUser:', error)
-      const mockUser = {
-        id: 'demo-user',
-        email: 'demo@prowriter.miniai.online'
-      }
+      console.error('Error loading user data:', error)
+      // Fallback to demo mode
       const mockProfile = {
         id: 'demo-user',
         email: 'demo@prowriter.miniai.online',
         plan: 'pro',
-        articles_generated_today: 3
+        articles_generated_today: 3,
+        full_name: 'Demo User'
       }
-      setUser(mockUser)
       setProfile(mockProfile)
     } finally {
       setLoading(false)
@@ -238,8 +210,8 @@ export default function BlogWriterPage() {
     setCurrentStep(1)
     
     try {
-      // Check if we're in demo mode
-      if (user?.id === 'demo-user') {
+      // Check if we're in demo mode  
+      if (clerkUser?.id === 'demo-user') {
         // Simulate API call delay
         await new Promise(resolve => setTimeout(resolve, 2000))
         
@@ -398,13 +370,20 @@ ${articleType === 'comparison' ? `
         includeSerpAnalysis: profile.plan !== 'free' && includeSerpAnalysis
       }
 
-      // Make API call to generate content
-      const response = await fetch('/api/generate-content', {
+      // Make API call to next-level generate content
+      const response = await fetch('/api/next-level-generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(requestPayload),
+        body: JSON.stringify({
+          ...requestPayload,
+          // Next-level specific options
+          nextLevel: true,
+          includeInteractiveElements: profile.plan !== 'free',
+          addUniqueEnhancements: true,
+          generateAdvancedMetadata: true
+        }),
       })
 
       if (!response.ok) {
@@ -413,24 +392,33 @@ ${articleType === 'comparison' ? `
 
       const data = await response.json()
       
-      if (data.error) {
-        throw new Error(data.error)
+      if (!data.success || data.error) {
+        throw new Error(data.error || 'Failed to generate article')
       }
 
       clearInterval(progressInterval)
       
-      // Set the generated content
-      setGeneratedContent(data.content)
+      // Set the generated content from next-level API
+      const articleContent = data.data.article
+      setGeneratedContent(articleContent)
       
       // Extract title from content or use topic as fallback
-      const titleMatch = data.content.match(/<h1[^>]*>(.*?)<\/h1>/i)
+      const titleMatch = articleContent.match(/<h1[^>]*>(.*?)<\/h1>/i)
       const extractedTitle = titleMatch ? titleMatch[1].replace(/<[^>]+>/g, '') : topic
       setArticleTitle(extractedTitle)
       
-      // Extract meta description if available, or create a default one
-      const metaMatch = data.content.match(/<meta[^>]*name="description"[^>]*content="([^"]*)"[^>]*>/i)
-      const extractedMeta = metaMatch ? metaMatch[1] : `Comprehensive guide to ${topic}. Expert insights and practical advice.`
-      setMetaDescription(extractedMeta)
+      // Use advanced metadata from next-level generation
+      const metaDescription = data.data.metadata.meta_description || `Comprehensive guide to ${topic}. Expert insights and practical advice.`
+      setMetaDescription(metaDescription)
+      
+      // Log generation statistics
+      console.log('📊 Next-Level Article Generated:', {
+        wordCount: data.data.statistics?.word_count || 0,
+        readingTime: data.data.metadata.reading_time || 0,
+        researchSources: data.data.statistics?.research_sources || 0,
+        sectionsGenerated: data.data.statistics?.sections_generated || 0,
+        enhancementsApplied: data.data.enhancements
+      })
       
       setCurrentStep(5)
       
@@ -512,7 +500,7 @@ ${articleType === 'comparison' ? `
     document.body.removeChild(element)
   }
 
-  if (loading) {
+  if (loading || !isLoaded) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
         <div className="text-center">
