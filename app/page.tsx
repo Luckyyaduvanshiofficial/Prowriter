@@ -58,8 +58,11 @@ export default function Home() {
               <Link href="/pricing" className="text-gray-600 hover:text-gray-900 transition-colors">
                 Pricing
               </Link>
-              <Link href="#" className="text-gray-600 hover:text-gray-900 transition-colors">
-                Examples
+              <Link href="/analytics" className="text-gray-600 hover:text-gray-900 transition-colors">
+                Analytics
+              </Link>
+              <Link href="/generate-enhanced" className="text-gray-600 hover:text-gray-900 transition-colors">
+                Generate
               </Link>
               <Link href="#" className="text-gray-600 hover:text-gray-900 transition-colors">
                 Docs
@@ -194,11 +197,12 @@ export default function Home() {
                 <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
                   <Brain className="w-6 h-6 text-white" />
                 </div>
-                <CardTitle className="text-xl">Multi-Model Analysis</CardTitle>
+                <CardTitle className="text-xl">Real-time AI Model Intelligence</CardTitle>
+                <Badge variant="secondary" className="w-fit mt-2">10x Enhanced</Badge>
               </CardHeader>
               <CardContent>
                 <p className="text-gray-600 leading-relaxed">
-                  Compare 85+ AI models including GPT-4, Claude, Gemini, LLaMA, and emerging models with real performance data.
+                  Advanced AI model database with real-time benchmarking, performance tracking, and intelligent recommendations. Compare 85+ models with live data updates.
                 </p>
               </CardContent>
             </Card>
@@ -209,11 +213,12 @@ export default function Home() {
                 <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
                   <BarChart3 className="w-6 h-6 text-white" />
                 </div>
-                <CardTitle className="text-xl">Data-Driven Insights</CardTitle>
+                <CardTitle className="text-xl">Advanced Analytics Engine</CardTitle>
+                <Badge variant="secondary" className="w-fit mt-2">New</Badge>
               </CardHeader>
               <CardContent>
                 <p className="text-gray-600 leading-relaxed">
-                  Leverage real benchmark data, performance metrics, and industry insights to back every claim in your content.
+                  Comprehensive content performance tracking, competitive intelligence, and ROI analysis. Track traffic, rankings, and revenue impact in real-time.
                 </p>
               </CardContent>
             </Card>
@@ -224,11 +229,12 @@ export default function Home() {
                 <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
                   <Target className="w-6 h-6 text-white" />
                 </div>
-                <CardTitle className="text-xl">SEO Optimization</CardTitle>
+                <CardTitle className="text-xl">Intelligent SEO Optimization</CardTitle>
+                <Badge variant="secondary" className="w-fit mt-2">AI-Powered</Badge>
               </CardHeader>
               <CardContent>
                 <p className="text-gray-600 leading-relaxed">
-                  Built-in SEO optimization with keyword targeting, meta descriptions, and content structure for maximum visibility.
+                  Advanced SEO engine with automated keyword research, competitor analysis, and content optimization. Achieve 95+ SEO scores consistently.
                 </p>
               </CardContent>
             </Card>
