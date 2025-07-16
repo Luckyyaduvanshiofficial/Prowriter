@@ -2,13 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { headers } from 'next/headers'
 import { Webhook } from 'svix'
 
-// You can get this from the Clerk Dashboard -> Webhooks -> Choose your webhook -> Signing Secret
-const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET
-
-if (!WEBHOOK_SECRET) {
-  throw new Error('Please add CLERK_WEBHOOK_SECRET from Clerk Dashboard to .env.local')
-}
-
 type EventType = 'user.created' | 'user.updated' | 'user.deleted' | '*'
 
 type Event = {
@@ -18,6 +11,13 @@ type Event = {
 }
 
 export async function POST(req: NextRequest) {
+  // You can get this from the Clerk Dashboard -> Webhooks -> Choose your webhook -> Signing Secret
+  const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET
+
+  if (!WEBHOOK_SECRET) {
+    console.error('CLERK_WEBHOOK_SECRET is not configured')
+    return new Response('Webhook secret not configured', { status: 500 })
+  }
   // Get the headers
   const headerPayload = headers()
   const svix_id = headerPayload.get('svix-id')
