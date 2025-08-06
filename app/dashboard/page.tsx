@@ -28,7 +28,8 @@ import {
   Download,
   Eye,
   CheckCircle,
-  GitCompare
+  GitCompare,
+  Type
 } from "lucide-react"
 import Link from "next/link"
 
@@ -242,11 +243,18 @@ export default function Dashboard() {
               </CardTitle>
               <CardDescription>Start generating content or manage your articles</CardDescription>
             </CardHeader>
-            <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <Link href="/blog-writer">
                 <Button className="w-full h-20 flex flex-col items-center justify-center space-y-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
                   <PenTool className="w-6 h-6" />
                   <span>AI Blog Writer</span>
+                </Button>
+              </Link>
+
+              <Link href="/canvas-writer">
+                <Button className="w-full h-20 flex flex-col items-center justify-center space-y-2 bg-gradient-to-r from-emerald-600 to-blue-600 hover:from-emerald-700 hover:to-blue-700">
+                  <Type className="w-6 h-6" />
+                  <span>Canvas Writer</span>
                 </Button>
               </Link>
               

@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Canvas Writer Demo - Prowriter AI</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background: linear-gradient(135deg, #f8fafc 0%, #e0f2fe 50%, #e8eaf6 100%);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            font-weight: bold;
+            color: #1e293b;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+        }
+
+        .header p {
+            font-size: 1.125rem;
+            color: #64748b;
+            margin-bottom: 2rem;
+        }
+
+        .badge {
+            background: linear-gradient(45deg, #3b82f6, #8b5cf6);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 1rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+        .demo-container {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .card {
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .card-description {
+            color: #64748b;
+            margin-top: 0.5rem;
+        }
+
+        .card-content {
+            padding: 1.5rem;
+        }
+
+        .control-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .label {
+            display: block;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 0.5rem;
+        }
+
+        select, button {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+        }
+
+        button {
+            background: linear-gradient(45deg, #3b82f6, #8b5cf6);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .canvas-container {
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        .canvas-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: between;
+            align-items: center;
+        }
+
+        .controls {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .control-btn {
+            width: auto;
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+        }
+
+        .progress-container {
+            margin-bottom: 1rem;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 0.5rem;
+            background: #e2e8f0;
+            border-radius: 0.25rem;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(45deg, #3b82f6, #8b5cf6);
+            transition: width 0.3s ease;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .stat {
+            text-align: center;
+            padding: 1rem;
+            background: #f8fafc;
+            border-radius: 0.5rem;
+        }
+
+        .stat-value {
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: #1e293b;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: #64748b;
+            margin-top: 0.25rem;
+        }
+
+        .canvas {
+            min-height: 400px;
+            max-height: 600px;
+            overflow-y: auto;
+            padding: 1.5rem;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .canvas.preview {
+            font-family: inherit;
+        }
+
+        .cursor {
+            display: inline-block;
+            width: 2px;
+            height: 1.2em;
+            background: #3b82f6;
+            margin-left: 1px;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+
+        .writing-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #10b981;
+            font-size: 0.875rem;
+        }
+
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            background: #10b981;
+            border-radius: 50%;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .speed-control {
+            margin-top: 1rem;
+        }
+
+        .speed-slider {
+            width: 100%;
+            margin-bottom: 0.5rem;
+        }
+
+        .speed-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: #64748b;
+        }
+
+        @media (max-width: 768px) {
+            .demo-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="4,7 4,4 20,4 20,7"></polyline>
+                    <line x1="9" y1="20" x2="15" y2="20"></line>
+                    <line x1="12" y1="4" x2="12" y2="20"></line>
+                </svg>
+                Canvas Writer Demo
+                <span class="badge">Live Typing ✨</span>
+            </h1>
+            <p>Experience live typing animation like ChatGPT - Watch articles come to life character by character</p>
+        </div>
+
+        <!-- Demo Container -->
+        <div class="demo-container">
+            <!-- Controls Panel -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2 2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.05a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                        </svg>
+                        Demo Controls
+                    </div>
+                    <div class="card-description">Choose content to demo the canvas writer</div>
+                </div>
+                <div class="card-content">
+                    <div class="control-group">
+                        <label class="label">Sample Articles</label>
+                        <select id="articleSelect">
+                            <option value="">Choose a sample article...</option>
+                            <option value="react-hooks">Complete Guide to React Hooks</option>
+                            <option value="ai-tools">Top 10 AI Tools for Developers</option>
+                        </select>
+                        <button onclick="loadSample()" style="margin-top: 0.75rem;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polygon points="5,3 19,12 5,21 5,3"></polygon>
+                            </svg>
+                            Load Sample Article
+                        </button>
+                    </div>
+
+                    <div class="control-group">
+                        <label class="label">Custom Content</label>
+                        <textarea id="customContent" placeholder="Paste your own HTML content here..." 
+                                style="width: 100%; min-height: 100px; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 0.5rem; resize: vertical;"></textarea>
+                        <button onclick="loadCustom()" style="margin-top: 0.75rem; background: white; color: #374151; border: 1px solid #d1d5db;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="4,7 4,4 20,4 20,7"></polyline>
+                                <line x1="9" y1="20" x2="15" y2="20"></line>
+                                <line x1="12" y1="4" x2="12" y2="20"></line>
+                            </svg>
+                            Load Custom Content
+                        </button>
+                    </div>
+
+                    <button onclick="clearCanvas()" style="background: white; color: #374151; border: 1px solid #d1d5db;">
+                        Clear Canvas
+                    </button>
+                </div>
+            </div>
+
+            <!-- Canvas Panel -->
+            <div class="canvas-container">
+                <div class="canvas-header">
+                    <div class="card-title">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14,2 14,8 20,8"></polyline>
+                            <line x1="16" y1="13" x2="8" y2="13"></line>
+                            <line x1="16" y1="17" x2="8" y2="17"></line>
+                            <polyline points="10,9 9,9 8,9"></polyline>
+                        </svg>
+                        Writing Canvas
+                        <div id="writingIndicator" class="writing-indicator" style="display: none; margin-left: auto;">
+                            <div class="pulse-dot"></div>
+                            <span>Writing...</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-content">
+                    <!-- Controls -->
+                    <div class="controls">
+                        <button class="control-btn" onclick="startTyping()" id="startBtn">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polygon points="5,3 19,12 5,21 5,3"></polygon>
+                            </svg>
+                            Start
+                        </button>
+                        <button class="control-btn" onclick="pauseTyping()" id="pauseBtn" disabled>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="6" y="4" width="4" height="16"></rect>
+                                <rect x="14" y="4" width="4" height="16"></rect>
+                            </svg>
+                            Pause
+                        </button>
+                        <button class="control-btn" onclick="stopTyping()" id="stopBtn" disabled>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            </svg>
+                            Stop
+                        </button>
+                        <button class="control-btn" onclick="skipToEnd()" id="skipBtn" disabled>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polygon points="5,4 15,12 5,20 5,4"></polygon>
+                                <line x1="19" y1="5" x2="19" y2="19"></line>
+                            </svg>
+                            Skip to End
+                        </button>
+                    </div>
+
+                    <!-- Progress -->
+                    <div class="progress-container">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-top: 0.5rem; font-size: 0.875rem; color: #64748b;">
+                            <span>Progress: <span id="progressText">0%</span></span>
+                            <span><span id="currentChar">0</span> / <span id="totalChars">0</span> characters</span>
+                        </div>
+                    </div>
+
+                    <!-- Stats -->
+                    <div class="stats">
+                        <div class="stat">
+                            <div class="stat-value" id="wordCount">0</div>
+                            <div class="stat-label">Words</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-value" id="readTime">0</div>
+                            <div class="stat-label">Min Read</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-value" id="typingSpeed">50</div>
+                            <div class="stat-label">Speed (ms)</div>
+                        </div>
+                    </div>
+
+                    <!-- Speed Control -->
+                    <div class="speed-control">
+                        <label class="label">Typing Speed</label>
+                        <input type="range" class="speed-slider" id="speedSlider" min="10" max="200" value="50" onchange="updateSpeed()">
+                        <div class="speed-labels">
+                            <span>Fast (10ms)</span>
+                            <span>Slow (200ms)</span>
+                        </div>
+                    </div>
+
+                    <!-- Canvas -->
+                    <div class="canvas" id="canvas"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Sample content
+        const sampleContent = {
+            "react-hooks": `<h1>Complete Guide to React Hooks</h1>
+
+<p>React Hooks revolutionized how we write React components by allowing functional components to use state and other React features. This comprehensive guide will take you from basic hooks to advanced patterns.</p>
+
+<h2>What Are React Hooks?</h2>
+
+<p>React Hooks are functions that let you "hook into" React state and lifecycle features from functional components. They were introduced in React 16.8 as a way to write more concise and reusable code.</p>
+
+<h3>Key Benefits of Hooks</h3>
+
+<ul>
+  <li><strong>Simplified Component Logic:</strong> No more confusing class syntax</li>
+  <li><strong>Better Code Reuse:</strong> Custom hooks allow sharing stateful logic</li>
+  <li><strong>Easier Testing:</strong> Functional components are simpler to test</li>
+  <li><strong>Improved Performance:</strong> Better optimization opportunities</li>
+</ul>
+
+<h2>Essential React Hooks</h2>
+
+<h3>1. useState Hook</h3>
+
+<p>The <strong>useState</strong> hook is the most fundamental hook for managing component state in functional components.</p>
+
+<pre><code>import React, { useState } from 'react';
+
+function Counter() {
+  const [count, setCount] = useState(0);
+  
+  return (
+    &lt;div&gt;
+      &lt;p&gt;Count: {count}&lt;/p&gt;
+      &lt;button onClick={() =&gt; setCount(count + 1)}&gt;
+        Increment
+      &lt;/button&gt;
+    &lt;/div&gt;
+  );
+}</code></pre>
+
+<h2>Best Practices</h2>
+
+<p>When using React Hooks, always follow these essential rules:</p>
+
+<ol>
+  <li><strong>Only call hooks at the top level:</strong> Don't call hooks inside loops or conditions</li>
+  <li><strong>Only call hooks from React functions:</strong> Either components or custom hooks</li>
+  <li><strong>Use the ESLint plugin:</strong> Install eslint-plugin-react-hooks to catch mistakes</li>
+</ol>
+
+<p>By mastering these patterns and following best practices, you'll be able to build more maintainable and efficient React applications. Start with the basics and gradually incorporate advanced patterns as your understanding grows.</p>`,
+
+            "ai-tools": `<h1>Top 10 AI Tools for Developers in 2024</h1>
+
+<p>Artificial Intelligence is revolutionizing software development, offering tools that can write code, debug issues, and even design entire applications. Here are the top 10 AI tools that every developer should consider.</p>
+
+<h2>1. GitHub Copilot</h2>
+
+<p><strong>What it does:</strong> AI-powered code completion and generation directly in your IDE.</p>
+
+<p><strong>Key Features:</strong></p>
+<ul>
+  <li>Real-time code suggestions as you type</li>
+  <li>Support for dozens of programming languages</li>
+  <li>Context-aware code generation</li>
+  <li>Integration with popular IDEs like VS Code</li>
+</ul>
+
+<p><strong>Best for:</strong> Day-to-day coding, learning new languages, and rapid prototyping.</p>
+
+<h2>2. ChatGPT for Code</h2>
+
+<p><strong>What it does:</strong> Conversational AI assistant for programming questions, code review, and debugging.</p>
+
+<p><strong>Key Features:</strong></p>
+<ul>
+  <li>Explains complex code concepts</li>
+  <li>Generates code snippets from natural language</li>
+  <li>Helps debug and optimize existing code</li>
+  <li>Provides architectural advice and best practices</li>
+</ul>
+
+<h2>3. Cursor AI</h2>
+
+<p><strong>What it does:</strong> AI-first code editor built specifically for pair programming with AI.</p>
+
+<p><strong>Key Features:</strong></p>
+<ul>
+  <li>Multi-file editing with AI context</li>
+  <li>Natural language code editing</li>
+  <li>Codebase-wide understanding</li>
+  <li>Built-in AI chat for development questions</li>
+</ul>
+
+<h2>How to Choose the Right AI Tool</h2>
+
+<p>When selecting AI development tools, consider these factors:</p>
+
+<ol>
+  <li><strong>Integration:</strong> How well does it work with your existing environment?</li>
+  <li><strong>Privacy:</strong> Does your team have specific privacy requirements?</li>
+  <li><strong>Cost:</strong> What's the pricing model and does it fit your budget?</li>
+  <li><strong>Language Support:</strong> Does it support your programming languages?</li>
+</ol>
+
+<h2>Best Practices</h2>
+
+<ul>
+  <li><strong>Review AI-generated code carefully:</strong> Always understand what the AI suggests</li>
+  <li><strong>Use AI as a copilot, not autopilot:</strong> Maintain control over your process</li>
+  <li><strong>Learn from AI suggestions:</strong> Use AI tools as learning opportunities</li>
+  <li><strong>Test thoroughly:</strong> AI-generated code still needs proper testing</li>
+</ul>
+
+<p>These AI tools represent just the beginning of how artificial intelligence will transform software development. By incorporating these tools into your workflow, you can boost productivity, learn new techniques, and focus on higher-level problem-solving.</p>`
+        };
+
+        // State
+        let currentContent = '';
+        let displayedContent = '';
+        let currentIndex = 0;
+        let isTyping = false;
+        let typingInterval = null;
+        let typingSpeed = 50;
+
+        // Elements
+        const canvas = document.getElementById('canvas');
+        const progressFill = document.getElementById('progressFill');
+        const progressText = document.getElementById('progressText');
+        const currentChar = document.getElementById('currentChar');
+        const totalChars = document.getElementById('totalChars');
+        const wordCount = document.getElementById('wordCount');
+        const readTime = document.getElementById('readTime');
+        const speedDisplay = document.getElementById('typingSpeed');
+        const writingIndicator = document.getElementById('writingIndicator');
+
+        // Buttons
+        const startBtn = document.getElementById('startBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const skipBtn = document.getElementById('skipBtn');
+
+        function loadSample() {
+            const select = document.getElementById('articleSelect');
+            const selectedValue = select.value;
+            
+            if (!selectedValue) return;
+            
+            currentContent = sampleContent[selectedValue];
+            displayedContent = '';
+            currentIndex = 0;
+            updateCanvas();
+            updateStats();
+            resetControls();
+            
+            // Auto-start typing
+            setTimeout(() => startTyping(), 500);
+        }
+
+        function loadCustom() {
+            const textarea = document.getElementById('customContent');
+            const content = textarea.value.trim();
+            
+            if (!content) return;
+            
+            currentContent = content;
+            displayedContent = '';
+            currentIndex = 0;
+            updateCanvas();
+            updateStats();
+            resetControls();
+            
+            // Auto-start typing
+            setTimeout(() => startTyping(), 500);
+        }
+
+        function clearCanvas() {
+            currentContent = '';
+            displayedContent = '';
+            currentIndex = 0;
+            stopTyping();
+            updateCanvas();
+            updateStats();
+            resetControls();
+        }
+
+        function startTyping() {
+            if (!currentContent || isTyping) return;
+            
+            isTyping = true;
+            updateControls();
+            writingIndicator.style.display = 'flex';
+            
+            typingInterval = setInterval(() => {
+                if (currentIndex >= currentContent.length) {
+                    stopTyping();
+                    return;
+                }
+                
+                displayedContent = currentContent.slice(0, currentIndex + 1);
+                currentIndex++;
+                updateCanvas();
+                updateStats();
+                
+                // Auto-scroll
+                canvas.scrollTop = canvas.scrollHeight;
+            }, typingSpeed);
+        }
+
+        function pauseTyping() {
+            if (!isTyping) return;
+            
+            isTyping = false;
+            clearInterval(typingInterval);
+            updateControls();
+            writingIndicator.style.display = 'none';
+        }
+
+        function stopTyping() {
+            isTyping = false;
+            clearInterval(typingInterval);
+            currentIndex = 0;
+            displayedContent = '';
+            updateCanvas();
+            updateStats();
+            updateControls();
+            writingIndicator.style.display = 'none';
+        }
+
+        function skipToEnd() {
+            if (!currentContent) return;
+            
+            isTyping = false;
+            clearInterval(typingInterval);
+            currentIndex = currentContent.length;
+            displayedContent = currentContent;
+            updateCanvas();
+            updateStats();
+            updateControls();
+            writingIndicator.style.display = 'none';
+        }
+
+        function updateSpeed() {
+            const slider = document.getElementById('speedSlider');
+            typingSpeed = parseInt(slider.value);
+            speedDisplay.textContent = typingSpeed;
+            
+            // Restart typing with new speed if currently typing
+            if (isTyping) {
+                clearInterval(typingInterval);
+                startTyping();
+            }
+        }
+
+        function updateCanvas() {
+            const cursor = isTyping ? '<span class="cursor"></span>' : '';
+            canvas.innerHTML = displayedContent + cursor;
+        }
+
+        function updateStats() {
+            const totalLength = currentContent.length;
+            const progress = totalLength > 0 ? (currentIndex / totalLength) * 100 : 0;
+            
+            // Update progress
+            progressFill.style.width = progress + '%';
+            progressText.textContent = Math.round(progress) + '%';
+            currentChar.textContent = currentIndex;
+            totalChars.textContent = totalLength;
+            
+            // Update word count
+            const words = displayedContent.trim().split(/\s+/).filter(word => word.length > 0).length;
+            wordCount.textContent = words;
+            
+            // Update read time (assuming 200 words per minute)
+            const minutes = Math.ceil(words / 200);
+            readTime.textContent = minutes;
+        }
+
+        function updateControls() {
+            const hasContent = currentContent.length > 0;
+            const isComplete = currentIndex >= currentContent.length;
+            
+            startBtn.disabled = !hasContent || isTyping || isComplete;
+            pauseBtn.disabled = !isTyping;
+            stopBtn.disabled = !hasContent || (!isTyping && currentIndex === 0);
+            skipBtn.disabled = !hasContent || isComplete;
+        }
+
+        function resetControls() {
+            startBtn.disabled = false;
+            pauseBtn.disabled = true;
+            stopBtn.disabled = true;
+            skipBtn.disabled = false;
+        }
+
+        // Initialize
+        updateStats();
+        resetControls();
+    </script>
+</body>
+</html>
