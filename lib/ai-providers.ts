@@ -4,7 +4,7 @@
 export interface AIModel {
   id: string
   name: string
-  provider: 'openrouter' | 'google' | 'together'
+  provider: 'openrouter' | 'google' | 'together' | 'baseten'
   modelId: string
   tier: 'free' | 'pro'
   features: string[]
@@ -126,6 +126,19 @@ export const AI_MODELS: AIModel[] = [
     maxTokens: 8192,
     costPer1000Tokens: 0,
     description: 'Advanced reasoning model distilled for better performance'
+  },
+
+  // Baseten Models
+  {
+    id: 'gpt-oss-120b',
+    name: 'GPT OSS 120B',
+    provider: 'baseten',
+    modelId: 'openai/gpt-oss-120b',
+    tier: 'pro',
+    features: ['Large Scale', 'High Quality', 'Advanced Reasoning'],
+    maxTokens: 1000,
+    costPer1000Tokens: 2.0,
+    description: 'High-performance open-source GPT model with 120B parameters'
   }
 ]
 
@@ -151,6 +164,13 @@ export const AI_PROVIDERS: Record<string, AIProvider> = {
     baseURL: 'https://api.together.xyz/v1',
     apiKeyEnv: 'TOGETHER_AI_API_KEY',
     models: AI_MODELS.filter(m => m.provider === 'together')
+  },
+  baseten: {
+    id: 'baseten',
+    name: 'Baseten',
+    baseURL: 'https://inference.baseten.co/v1',
+    apiKeyEnv: 'BASETEN_API_KEY',
+    models: AI_MODELS.filter(m => m.provider === 'baseten')
   }
 }
 
@@ -228,6 +248,8 @@ export class AIProviderClient {
           return await this.generateGoogle(request, model)
         case 'together':
           return await this.generateTogether(request, model)
+        case 'baseten':
+          return await this.generateBaseten(request, model)
         default:
           throw new Error(`Unsupported provider: ${this.provider.id}`)
       }
@@ -371,6 +393,49 @@ export class AIProviderClient {
       provider: 'together'
     }
   }
+
+  private async generateBaseten(request: GenerationRequest, model: AIModel): Promise<GenerationResponse> {
+    const response = await fetch(`${this.provider.baseURL}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${this.apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: model.modelId,
+        messages: request.messages,
+        temperature: request.temperature || 1,
+        max_tokens: Math.min(request.maxTokens || 1000, model.maxTokens),
+        top_p: 1,
+        presence_penalty: 0,
+        frequency_penalty: 0,
+        stop: [],
+        stream: false
+      })
+    })
+
+    if (!response.ok) {
+      const errorData = await response.text()
+      throw new Error(`Baseten API error: ${response.status} ${errorData}`)
+    }
+
+    const data = await response.json()
+    
+    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+      throw new Error('Invalid response format from Baseten')
+    }
+
+    return {
+      content: data.choices[0].message.content,
+      usage: data.usage ? {
+        promptTokens: data.usage.prompt_tokens,
+        completionTokens: data.usage.completion_tokens,
+        totalTokens: data.usage.total_tokens
+      } : undefined,
+      model: model.id,
+      provider: 'baseten'
+    }
+  }
 }
 
 // Factory function to create provider clients
@@ -393,8 +458,8 @@ export function getBestModelForTier(userTier: 'free' | 'pro', preferredProvider?
     }
   }
   
-  // Default fallback
+  // Default to Baseten first, then fallback to others
   return userTier === 'pro' 
-    ? availableModels.find(m => m.id === 'llama-405b') || availableModels[0]
-    : availableModels.find(m => m.id === 'qwen-72b') || availableModels[0]
+    ? availableModels.find(m => m.id === 'gpt-oss-120b') || availableModels.find(m => m.id === 'llama-405b') || availableModels[0]
+    : availableModels.find(m => m.id === 'llama-3-3-70b-free') || availableModels.find(m => m.id === 'qwen-72b') || availableModels[0]
 }

@@ -28,7 +28,7 @@ export class LangChainBlogPipeline {
   private graph: any;
 
   constructor(
-    provider: 'openai' | 'google' = 'openai',
+    provider: 'openai' | 'google' | 'baseten' = 'baseten',
     modelName?: string,
     apiKey?: string
   ) {
@@ -39,6 +39,20 @@ export class LangChainBlogPipeline {
         apiKey: apiKey || process.env.GOOGLE_AI_API_KEY,
         temperature: 0.7,
         maxOutputTokens: 4096,
+      });
+    } else if (provider === 'baseten') {
+      // Use OpenAI-compatible interface for Baseten
+      this.llm = new ChatOpenAI({
+        modelName: modelName || "openai/gpt-oss-120b",
+        openAIApiKey: apiKey || process.env.BASETEN_API_KEY,
+        configuration: {
+          baseURL: "https://inference.baseten.co/v1",
+          defaultHeaders: {
+            "Content-Type": "application/json",
+          },
+        },
+        temperature: 1,
+        maxTokens: 1000,
       });
     } else {
       this.llm = new ChatOpenAI({
