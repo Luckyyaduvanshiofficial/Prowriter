@@ -25,7 +25,6 @@ import {
   Rocket,
   Crown
 } from "lucide-react"
-import Link from "next/link"
 
 export default function Home() {
   const { user, isSignedIn } = useUser()
