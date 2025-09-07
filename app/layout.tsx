@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import './globals.css'
 import { Toaster } from "@/components/ui/toaster"
 import { ErrorHandler } from "@/components/error-handler"
-import { ClerkProvider } from '@clerk/nextjs'
+import { AuthProvider } from "@/lib/auth-context"
 
 export const metadata: Metadata = {
   title: 'Prowriter AI - Premium AI Content Generation SaaS',
@@ -100,22 +100,22 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <ClerkProvider>
-      <html lang="en">
-        <head>
-          <script
-            type="application/ld+json"
-            dangerouslySetInnerHTML={{
-              __html: JSON.stringify(structuredData),
-            }}
-          />
-        </head>
-        <body suppressHydrationWarning={true}>
+    <html lang="en">
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(structuredData),
+          }}
+        />
+      </head>
+      <body suppressHydrationWarning={true}>
+        <AuthProvider>
           <ErrorHandler />
           {children}
           <Toaster />
-        </body>
-      </html>
-    </ClerkProvider>
+        </AuthProvider>
+      </body>
+    </html>
   )
 }

@@ -1,21 +1,23 @@
 # Prowriter AI - Premium AI Content Generation Platform
 
-🚀 **Enhanced with Baseten API Integration**
+🚀 **Enhanced with Neon Database & Auth Integration**
 
-Prowriter AI is a modern, full-featured content generation platform powered by cutting-edge AI technology. This version has been completely updated to integrate with Baseten's high-performance AI infrastructure for lightning-fast content creation.
+Prowriter AI is a modern, full-featured content generation platform powered by cutting-edge AI technology. This version has been completely updated to use Neon's high-performance PostgreSQL database and authentication system for a unified, scalable solution.
 
 ## ✨ Key Features
 
-### 🎯 **Baseten AI Integration**
-- **GPT OSS 120B Model**: Ultra-high performance content generation
-- **Enterprise-grade reliability**: 99.9% uptime and consistent performance
+### 🎯 **Neon Integration**
+- **Neon PostgreSQL**: High-performance, serverless database with branching
+- **Neon Auth**: Secure authentication with JWT tokens and session management
+- **Enterprise-grade reliability**: 99.9% uptime and automatic scaling
 - **Lightning fast**: Generate 3000+ word articles in under 2 minutes
 - **Advanced parameters**: Full control over creativity, temperature, and output quality
 
 ### 🔐 **Modern Authentication**
-- **Clerk Integration**: Seamless sign-in/sign-up experience
-- **Social logins**: Google, GitHub, Apple, and more
-- **Secure sessions**: Enterprise-grade security and user management
+- **Custom Auth System**: Built on Neon database with secure password hashing
+- **JWT Sessions**: Secure, stateless authentication tokens
+- **Professional UI**: Beautiful sign-in/sign-up pages with form validation
+- **Password Security**: Strong password requirements and bcrypt hashing
 - **Role-based access**: Free and Pro tier management
 
 ### 📝 **Advanced Content Generation**
@@ -23,21 +25,24 @@ Prowriter AI is a modern, full-featured content generation platform powered by c
 - **SEO optimization**: Built-in keyword research and content optimization
 - **Professional templates**: Industry-specific content templates
 - **Real-time generation**: Live progress tracking and status updates
+- **Content management**: Save, edit, and organize your generated articles
 
 ### 💼 **Professional UI/UX**
 - **Modern design**: Clean, responsive interface built with Tailwind CSS
 - **Mobile-first**: Fully responsive design for all devices
 - **Dark/light themes**: Automatic theme switching
 - **Accessibility**: WCAG 2.1 compliant interface
+- **Form validation**: Real-time validation with helpful error messages
 
 ## 🛠️ Technology Stack
 
 - **Frontend**: Next.js 15, React 19, TypeScript
+- **Database**: Neon PostgreSQL (serverless)
+- **Authentication**: Custom JWT-based auth system
 - **UI Library**: Radix UI components with Tailwind CSS
-- **Authentication**: Clerk
-- **AI Integration**: Baseten API with GPT OSS 120B
+- **AI Integration**: OpenAI, Google Generative AI, Together AI
 - **State Management**: React hooks and context
-- **Database**: Clerk user management (Supabase removed)
+- **Password Security**: bcryptjs for hashing
 - **Deployment**: Vercel-ready configuration
 
 ## 🚀 Quick Start
@@ -45,8 +50,8 @@ Prowriter AI is a modern, full-featured content generation platform powered by c
 ### Prerequisites
 - Node.js 18+ 
 - npm or pnpm
-- Baseten API key
-- Clerk account
+- Neon account (free tier available)
+- AI provider API keys (OpenAI, Google AI, etc.)
 
 ### Installation
 
@@ -61,41 +66,61 @@ Prowriter AI is a modern, full-featured content generation platform powered by c
    npm install --legacy-peer-deps
    ```
 
-3. **Configure environment variables**
+3. **Set up Neon Database**
+   - Sign up at [Neon.tech](https://neon.tech)
+   - Create a new project
+   - Copy your connection string
+   - Run the schema file in Neon Console:
+     ```sql
+     -- Copy and paste the contents of neon-schema.sql
+     ```
+
+4. **Configure environment variables**
    Create a `.env.local` file:
    ```env
-   # Baseten AI Integration
-   BASETEN_API_KEY=your_baseten_api_key_here
+   # Neon Database
+   DATABASE_URL=your_neon_connection_string_here
    
-   # Clerk Authentication
-   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
-   CLERK_SECRET_KEY=your_clerk_secret_key
+   # Authentication
+   JWT_SECRET=your_super_secret_jwt_key_here
+   
+   # AI Providers
+   OPENAI_API_KEY=your_openai_api_key_here
+   GOOGLE_API_KEY=your_google_api_key_here
    
    # Site Configuration
    NEXT_PUBLIC_SITE_URL=http://localhost:3000
    ```
 
-4. **Start development server**
+5. **Start development server**
    ```bash
    npm run dev
    ```
 
-5. **Open in browser**
+6. **Open in browser**
    Navigate to `http://localhost:3000`
 
 ## 🔧 Configuration
 
-### Baseten API Setup
-1. Sign up at [Baseten](https://baseten.co)
-2. Create a new API key
-3. Add the key to your `.env.local` file
-4. The integration uses the `openai/gpt-oss-120b` model by default
+### Neon Database Setup
+1. Sign up at [Neon.tech](https://neon.tech)
+2. Create a new project and database
+3. Copy the connection string to your `.env.local`
+4. Run the `neon-schema.sql` file to create tables
+5. The application will automatically handle user registration and data management
 
-### Clerk Authentication Setup
-1. Create a Clerk application at [Clerk.dev](https://clerk.dev)
-2. Configure your authentication providers
-3. Add your keys to the environment variables
-4. Update the middleware for protected routes
+### AI Providers Setup
+1. **OpenAI**: Get your API key from [OpenAI Platform](https://platform.openai.com/api-keys)
+2. **Google AI**: Create a key at [Google AI Studio](https://makersuite.google.com/app/apikey)
+3. **Together AI**: Sign up at [Together.ai](https://together.ai) for access to LLaMA and other models
+4. Add all keys to your environment variables
+
+### Authentication Configuration
+The system uses JWT tokens for authentication:
+- Tokens expire after 7 days
+- Passwords are hashed with bcryptjs (12 rounds)
+- Sessions are stored in HTTP-only cookies
+- Middleware protects all authenticated routes
 
 ## 📊 Features Overview
 
@@ -109,35 +134,36 @@ Prowriter AI is a modern, full-featured content generation platform powered by c
 - **Free tier**: 5 articles per day
 - **Pro tier**: 25 articles per day + advanced features
 - **Usage tracking**: Real-time generation limits and statistics
-- **Content history**: Save and manage generated articles
+- **Content history**: Save and manage generated articles in your dashboard
 
-### Performance
-- **Fast generation**: 2-minute average for long-form content
-- **Real-time updates**: Live progress tracking during generation
-- **Optimized caching**: Reduced API calls and faster responses
-- **Error handling**: Graceful fallbacks and error recovery
+### Database Features
+- **Article storage**: Full content with metadata and SEO information
+- **Usage analytics**: Track daily, monthly, and total article generation
+- **User profiles**: Comprehensive user management with subscription tracking
+- **Performance**: Optimized queries with proper indexing
 
 ## 🔄 Recent Updates
 
-### ✅ **Completed Improvements**
-- [x] **Baseten API Integration**: Complete integration with GPT OSS 120B model
-- [x] **Cleaned codebase**: Removed all test files and unnecessary documentation
-- [x] **Authentication overhaul**: Clerk as primary authentication provider
-- [x] **UI/UX enhancements**: Modern, responsive design improvements
-- [x] **Performance optimization**: Faster content generation and loading times
-- [x] **Error handling**: Better error messages and user feedback
+### ✅ **Completed Migration**
+- [x] **Neon Integration**: Complete migration from Supabase to Neon PostgreSQL
+- [x] **Custom Authentication**: Replaced Clerk with custom JWT-based auth system
+- [x] **Database Schema**: Updated schema with proper relationships and indexing
+- [x] **Modern UI**: Redesigned authentication pages with improved UX
+- [x] **API Overhaul**: Updated all API routes to use Neon database
+- [x] **Security Enhancements**: Implemented proper password hashing and JWT validation
 
-### 🎯 **Key Achievements**
-- **40+ test files removed**: Cleaner, more maintainable codebase
-- **Supabase dependencies removed**: Simplified authentication with Clerk
-- **Baseten as default provider**: High-performance AI content generation
-- **Enhanced user experience**: Improved navigation and content flow
-- **Better SEO optimization**: Advanced meta tags and structured data
+### 🎯 **Key Improvements**
+- **Unified Platform**: Single database and auth provider for better integration
+- **Better Performance**: Neon's serverless architecture provides faster queries
+- **Enhanced Security**: Custom authentication with industry-standard practices
+- **Improved UX**: Professional sign-in/up pages with real-time validation
+- **Scalability**: Auto-scaling database that grows with your needs
 
 ## 📱 Usage Guide
 
 ### 1. **Getting Started**
-- Sign up with email or social login
+- Create an account with email and password
+- Verify your account meets password requirements
 - Choose your plan (Free or Pro)
 - Access the AI Writer dashboard
 
@@ -150,9 +176,32 @@ Prowriter AI is a modern, full-featured content generation platform powered by c
 
 ### 3. **Content Management**
 - Save articles to your dashboard
-- Export in HTML, Markdown, or PDF formats
-- Copy content to clipboard
-- Track usage statistics
+- View usage statistics and limits
+- Export content in various formats
+- Track your content generation history
+
+### 4. **Account Management**
+- Update profile information
+- Monitor usage limits
+- Upgrade/downgrade plans
+- Manage account settings
+
+## 🔐 Security Features
+
+- **Password Security**: Strong password requirements with validation
+- **JWT Tokens**: Secure, stateless authentication
+- **HTTP-Only Cookies**: Prevent XSS attacks
+- **Database Security**: Prepared statements prevent SQL injection
+- **Environment Variables**: Sensitive data stored securely
+- **Middleware Protection**: Automatic route protection
+
+## 📈 Performance
+
+- **Fast queries**: Optimized database schema with proper indexing
+- **Serverless scaling**: Neon automatically scales with demand
+- **Efficient caching**: Reduced API calls and faster responses
+- **Optimized build**: Next.js production optimizations
+- **CDN delivery**: Static assets served via CDN
 
 ## 🤝 Contributing
 
@@ -177,12 +226,12 @@ For support and questions:
 
 ## 🎉 Acknowledgments
 
-- **Baseten**: For providing high-performance AI infrastructure
-- **Clerk**: For seamless authentication solutions
+- **Neon**: For providing excellent PostgreSQL database infrastructure
 - **Vercel**: For excellent hosting and deployment
 - **Next.js team**: For the amazing React framework
 - **Tailwind CSS**: For beautiful, utility-first styling
+- **Radix UI**: For accessible, unstyled UI components
 
 ---
 
-Built with ❤️ by the Prowriter AI team. Powered by Baseten's cutting-edge AI technology.
+Built with ❤️ by the Prowriter AI team. Powered by Neon's cutting-edge database technology.

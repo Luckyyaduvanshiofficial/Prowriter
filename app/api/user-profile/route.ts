@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
+import { getCurrentUserId, getCurrentUserWithProfile } from '@/lib/auth'
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const { userId } = await auth()
+    const userWithProfile = await getCurrentUserWithProfile(req)
     
-    if (!userId) {
+    if (!userWithProfile) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
     

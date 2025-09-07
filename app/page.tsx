@@ -4,14 +4,8 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { 
-  SignInButton, 
-  SignUpButton, 
-  UserButton, 
-  SignedIn, 
-  SignedOut,
-  useUser 
-} from "@clerk/nextjs"
+import { useUser } from "@/lib/auth-context"
+import Link from "next/link"
 import { 
   CheckCircle, 
   Zap, 
