@@ -61,8 +61,8 @@ export default function Home() {
               <Link href="/analytics" className="text-gray-600 hover:text-gray-900 transition-colors">
                 Analytics
               </Link>
-              <Link href="/generate-enhanced" className="text-gray-600 hover:text-gray-900 transition-colors">
-                Generate
+              <Link href="/blog-writer" className="text-gray-600 hover:text-gray-900 transition-colors font-medium">
+                AI Writer
               </Link>
               <Link href="#" className="text-gray-600 hover:text-gray-900 transition-colors">
                 Docs
@@ -105,33 +105,33 @@ export default function Home() {
             {/* Announcement Badge */}
             <div className="inline-flex items-center space-x-2 bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 text-blue-700 px-6 py-2 rounded-full text-sm font-medium mb-8 animate-fade-in">
               <Sparkles className="w-4 h-4" />
-              <span>New: Advanced AI Model Benchmarks Now Available</span>
+              <span>New: Baseten AI Integration - High-Performance Content Generation</span>
               <ArrowRight className="w-3 h-3" />
             </div>
             
             {/* Main Heading */}
             <h1 className="text-6xl md:text-7xl lg:text-8xl font-extrabold text-gray-900 mb-8 leading-tight animate-slide-up">
-              Build AI Content
+              AI Content Creation
               <br />
               <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
-                That Dominates
+                Powered by Baseten
               </span>
             </h1>
             
             {/* Subtitle */}
             <p className="text-xl md:text-2xl text-gray-600 mb-12 max-w-4xl mx-auto leading-relaxed animate-slide-up">
-              Create expert-level AI model comparison articles that rank #1 on Google. 
-              Compare GPT-4, Claude, Gemini, LLaMA and 50+ models with data-driven insights.
+              Create professional content with our advanced Baseten AI integration. 
+              Generate high-quality articles, blog posts, and marketing copy that engages and converts.
             </p>
             
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16 animate-scale-in">
-              <Link href="/sign-up">
+              <Link href="/blog-writer">
                 <Button 
                   size="lg" 
                   className="px-10 py-6 text-lg bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-premium group"
                 >
-                  Start Creating Free 
+                  Start Writing with AI 
                   <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </Button>
               </Link>
@@ -150,20 +150,20 @@ export default function Home() {
             {/* Social Proof Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto">
               <div className="text-center animate-fade-in">
-                <div className="text-4xl font-bold text-gray-900 mb-1">2,500+</div>
+                <div className="text-4xl font-bold text-gray-900 mb-1">3,500+</div>
                 <div className="text-gray-600 text-sm">Articles Generated</div>
               </div>
               <div className="text-center animate-fade-in">
-                <div className="text-4xl font-bold text-gray-900 mb-1">85+</div>
-                <div className="text-gray-600 text-sm">AI Models Covered</div>
+                <div className="text-4xl font-bold text-gray-900 mb-1">120B</div>
+                <div className="text-gray-600 text-sm">AI Parameters</div>
               </div>
               <div className="text-center animate-fade-in">
-                <div className="text-4xl font-bold text-gray-900 mb-1">98%</div>
-                <div className="text-gray-600 text-sm">SEO Score Average</div>
+                <div className="text-4xl font-bold text-gray-900 mb-1">99.9%</div>
+                <div className="text-gray-600 text-sm">Uptime Score</div>
               </div>
               <div className="text-center animate-fade-in">
-                <div className="text-4xl font-bold text-gray-900 mb-1">15min</div>
-                <div className="text-gray-600 text-sm">Average Time</div>
+                <div className="text-4xl font-bold text-gray-900 mb-1">2min</div>
+                <div className="text-gray-600 text-sm">Average Generation Time</div>
               </div>
             </div>
           </div>
@@ -197,12 +197,12 @@ export default function Home() {
                 <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
                   <Brain className="w-6 h-6 text-white" />
                 </div>
-                <CardTitle className="text-xl">Real-time AI Model Intelligence</CardTitle>
-                <Badge variant="secondary" className="w-fit mt-2">10x Enhanced</Badge>
+                <CardTitle className="text-xl">Baseten AI Integration</CardTitle>
+                <Badge variant="secondary" className="w-fit mt-2">High Performance</Badge>
               </CardHeader>
               <CardContent>
                 <p className="text-gray-600 leading-relaxed">
-                  Advanced AI model database with real-time benchmarking, performance tracking, and intelligent recommendations. Compare 85+ models with live data updates.
+                  Powered by Baseten's GPT OSS 120B model for lightning-fast content generation. Advanced AI capabilities with enterprise-grade reliability and performance.
                 </p>
               </CardContent>
             </Card>

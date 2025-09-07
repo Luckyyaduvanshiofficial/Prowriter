@@ -233,7 +233,7 @@ export default function BlogWriterPage() {
   // Form state
   const [articleType, setArticleType] = useState("how-to")
   const [topic, setTopic] = useState("")
-  const [aiEngine, setAiEngine] = useState("qwen-72b")
+  const [aiEngine, setAiEngine] = useState("gpt-oss-120b")
   const [contentLength, setContentLength] = useState("medium")
   const [brandVoice, setBrandVoice] = useState("friendly")
   const [seoKeywords, setSeoKeywords] = useState("")
@@ -511,6 +511,7 @@ ${articleType === 'comparison' ? `
           ...requestPayload,
           // Next-level specific options
           nextLevel: true,
+          provider: 'baseten', // Use Baseten as default provider
           includeInteractiveElements: profile.plan !== 'free',
           addUniqueEnhancements: true,
           generateAdvancedMetadata: true
@@ -691,7 +692,12 @@ ${articleType === 'comparison' ? `
                   <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                     AI Blog Writer
                   </h1>
-                  <p className="text-sm text-gray-600 hidden sm:block">Create professional, SEO-optimized content</p>
+                  <div className="flex items-center space-x-2">
+                    <p className="text-sm text-gray-600 hidden sm:block">Create professional, SEO-optimized content</p>
+                    <Badge variant="outline" className="text-xs border-green-200 text-green-700 bg-green-50">
+                      Powered by Baseten
+                    </Badge>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1092,6 +1098,12 @@ ${articleType === 'comparison' ? `
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="all">All Providers</SelectItem>
+                          <SelectItem value="baseten">
+                            <div className="flex items-center space-x-2">
+                              <span>Baseten</span>
+                              <Badge variant="secondary" className="text-xs">GPT OSS 120B</Badge>
+                            </div>
+                          </SelectItem>
                           <SelectItem value="openrouter">
                             <div className="flex items-center space-x-2">
                               <span>OpenRouter</span>

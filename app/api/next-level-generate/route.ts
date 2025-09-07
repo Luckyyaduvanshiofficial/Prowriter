@@ -83,7 +83,9 @@ export async function POST(request: NextRequest) {
     const result = await generateNextLevelBlog(topic, {
       provider,
       modelName,
-      apiKey: provider === 'google' ? process.env.GOOGLE_AI_API_KEY : process.env.OPENROUTER_API_KEY,
+      apiKey: provider === 'google' ? process.env.GOOGLE_AI_API_KEY : 
+               provider === 'baseten' ? process.env.BASETEN_API_KEY :
+               process.env.OPENROUTER_API_KEY,
       tone,
       length,
       includeInteractiveElements,
