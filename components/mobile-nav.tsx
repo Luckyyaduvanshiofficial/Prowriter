@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Badge } from "@/components/ui/badge"
 import { AIProviderSelector } from "@/components/ai-provider-selector"
-import { useUser, useClerk } from "@clerk/nextjs"
+import { useUser, useClerk } from "@/lib/auth-context"
 import { 
   Menu, 
   X, 

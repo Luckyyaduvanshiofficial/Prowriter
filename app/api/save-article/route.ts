@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
+import { getCurrentUserId } from '@/lib/auth'
+import { DatabaseQueries } from '@/lib/neon'
 
 export async function POST(request: NextRequest) {
   try {
-    // Get the authenticated user from Clerk
-    const { userId } = await auth()
+    // Get the authenticated user
+    const userId = await getCurrentUserId(request)
     
     if (!userId) {
       return NextResponse.json(
@@ -40,36 +41,37 @@ export async function POST(request: NextRequest) {
     const wordCount = content.replace(/<[^>]*>/g, '').split(/\s+/).filter((word: string) => word.length > 0).length
     const estimatedReadingTime = Math.ceil(wordCount / 200) // Average reading speed
 
-    // Mock article save for demo purposes
-    // In a real implementation, you would save this to your database
-    const mockArticle = {
-      id: Date.now().toString(),
+    // Save article to database
+    const articleId = await DatabaseQueries.createArticle({
       user_id: userId,
       title: title,
       content: content,
-      meta_description: metaDescription || '',
+      meta_description: metaDescription || null,
       topic: topic || title,
       model_a: modelA || '',
       model_b: modelB || '',
       use_case: articleType || 'informative',
       article_length: contentLength || 'medium',
       ai_engine: aiEngine || 'qwen',
-      seo_keywords: seoKeywords || '',
-      target_audience: targetAudience || '',
+      seo_keywords: seoKeywords || null,
+      target_audience: targetAudience || null,
       brand_voice: brandVoice || 'friendly',
+      used_web_search: false,
+      used_serp_analysis: false,
       word_count: wordCount,
       estimated_reading_time: estimatedReadingTime,
-      status: 'draft',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    }
+      status: 'draft'
+    })
 
-    console.log('Article would be saved:', mockArticle.title)
+    // Update usage tracking
+    await DatabaseQueries.incrementUsage(userId, 'articles')
+
+    console.log('Article saved successfully:', title)
 
     return NextResponse.json({
       success: true,
-      article: mockArticle,
-      message: 'Article saved successfully (demo mode)'
+      articleId: articleId,
+      message: 'Article saved successfully'
     })
 
   } catch (error) {

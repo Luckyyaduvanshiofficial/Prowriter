@@ -3,16 +3,11 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { AIProviderSelector } from "@/components/ai-provider-selector"
 import { MobileNav } from "@/components/mobile-nav"
-import { 
-  SignInButton, 
-  SignUpButton, 
-  UserButton, 
-  SignedIn, 
-  SignedOut,
-  useUser 
-} from "@clerk/nextjs"
+import { useUser, useClerk } from "@/lib/auth-context"
 import { 
   Brain, 
   Crown, 
@@ -32,13 +27,19 @@ export function AppHeader({
   showAISelector = false
 }: AppHeaderProps) {
   const { user, isSignedIn } = useUser()
+  const { signOut } = useClerk()
   
-  // Mock user profile for demo - you can replace this with actual user data from your database
-  const profile = isSignedIn ? {
-    plan: user?.publicMetadata?.plan || 'free',
-    articlesUsed: user?.publicMetadata?.articlesUsed || 0,
-    articlesLimit: user?.publicMetadata?.articlesLimit || 5
+  // User profile for display
+  const profile = isSignedIn && user ? {
+    plan: user.publicMetadata?.plan || 'free',
+    articlesUsed: user.publicMetadata?.articlesUsed || 0,
+    articlesLimit: user.publicMetadata?.articlesLimit || 5
   } : null
+
+  const userInitials = user ? 
+    `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`.toUpperCase() || 
+    user.emailAddresses?.[0]?.emailAddress?.[0]?.toUpperCase() || 'U'
+    : 'U'
 
   return (
     <header className="bg-white/80 backdrop-blur-xl border-b border-gray-200 sticky top-0 z-50">
@@ -52,89 +53,106 @@ export function AppHeader({
               <span className="text-2xl font-bold text-gray-900">Prowriter AI</span>
             </Link>
             
-            <SignedIn>
-              {profile && (
-                <Badge 
-                  variant={profile.plan === 'free' ? 'secondary' : 'default'}
-                  className={profile.plan === 'pro' ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white' : ''}
-                >
-                  {profile.plan === 'pro' && <Crown className="w-3 h-3 mr-1" />}
-                  {profile.plan.toUpperCase()}
-                </Badge>
-              )}
-            </SignedIn>
+            {isSignedIn && profile && (
+              <Badge 
+                variant={profile.plan === 'free' ? 'secondary' : 'default'}
+                className={profile.plan === 'pro' ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white' : ''}
+              >
+                {profile.plan === 'pro' && <Crown className="w-3 h-3 mr-1" />}
+                {profile.plan.toUpperCase()}
+              </Badge>
+            )}
           </div>
           
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-4">
-            <SignedIn>
-              {/* AI Model Selector for Desktop */}
-              {showAISelector && profile && selectedAIModel && onAIModelChange && (
-                <div className="flex items-center space-x-2 px-3 py-2 bg-gray-50 rounded-lg border">
-                  <Bot className="w-4 h-4 text-gray-600" />
-                  <span className="text-sm text-gray-600 mr-2">AI Engine:</span>
-                  <AIProviderSelector
-                    selectedModel={selectedAIModel}
-                    onModelSelect={onAIModelChange}
-                    userTier={profile?.plan === 'pro' ? 'pro' : 'free'}
-                    variant="compact"
-                  />
-                </div>
-              )}
-              
-              <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900">
-                <Settings className="w-4 h-4 mr-2" />
-                Settings
-              </Button>
-              
-              <UserButton 
-                appearance={{
-                  elements: {
-                    avatarBox: "w-8 h-8"
-                  }
-                }}
-              />
-            </SignedIn>
-
-            <SignedOut>
-              <SignInButton mode="modal">
-                <Button variant="ghost" size="sm">
-                  Sign In
+            {isSignedIn ? (
+              <>
+                {/* AI Model Selector for Desktop */}
+                {showAISelector && profile && selectedAIModel && onAIModelChange && (
+                  <div className="flex items-center space-x-2 px-3 py-2 bg-gray-50 rounded-lg border">
+                    <Bot className="w-4 h-4 text-gray-600" />
+                    <span className="text-sm text-gray-600 mr-2">AI Engine:</span>
+                    <AIProviderSelector
+                      selectedModel={selectedAIModel}
+                      onModelSelect={onAIModelChange}
+                      userTier={profile?.plan === 'pro' ? 'pro' : 'free'}
+                      variant="compact"
+                    />
+                  </div>
+                )}
+                
+                <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900">
+                  <Settings className="w-4 h-4 mr-2" />
+                  Settings
                 </Button>
-              </SignInButton>
-              <SignUpButton mode="modal">
-                <Button size="sm">
-                  Get Started
-                </Button>
-              </SignUpButton>
-            </SignedOut>
+                
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                      <Avatar className="h-8 w-8">
+                        <AvatarFallback className="bg-gradient-to-br from-blue-600 to-purple-600 text-white text-sm">
+                          {userInitials}
+                        </AvatarFallback>
+                      </Avatar>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-56" align="end">
+                    <DropdownMenuItem className="flex flex-col items-start">
+                      <div className="font-medium">{user?.fullName || 'User'}</div>
+                      <div className="text-sm text-muted-foreground">{user?.emailAddresses?.[0]?.emailAddress}</div>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/dashboard">Dashboard</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/pricing">Pricing</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => signOut()}>
+                      Sign Out
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </>
+            ) : (
+              <>
+                <Link href="/sign-in">
+                  <Button variant="ghost" size="sm">
+                    Sign In
+                  </Button>
+                </Link>
+                <Link href="/sign-up">
+                  <Button size="sm">
+                    Get Started
+                  </Button>
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Mobile Navigation */}
           <div className="md:hidden">
-            <SignedIn>
+            {isSignedIn ? (
               <MobileNav
                 user={user}
                 profile={profile}
                 selectedAIModel={selectedAIModel}
                 onAIModelChange={onAIModelChange}
               />
-            </SignedIn>
-            
-            <SignedOut>
+            ) : (
               <div className="flex items-center space-x-2">
-                <SignInButton mode="modal">
+                <Link href="/sign-in">
                   <Button variant="ghost" size="sm">
                     Sign In
                   </Button>
-                </SignInButton>
-                <SignUpButton mode="modal">
+                </Link>
+                <Link href="/sign-up">
                   <Button size="sm">
                     Sign Up
                   </Button>
-                </SignUpButton>
+                </Link>
               </div>
-            </SignedOut>
+            )}
           </div>
         </div>
       </div>
