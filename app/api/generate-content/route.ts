@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { createProviderClient, getModelById } from "@/lib/ai-providers"
 import { createWebResearcher, type WebSearchOptions } from "@/lib/web-search"
 
-const MASTER_PROMPT = `You are an expert content strategist and SEO blog writer specializing in AI technology. You create comprehensive, engaging content for Prowriter AI (prowriter.miniai.online), a leading platform for AI model analysis and insights.
+const MASTER_PROMPT = `You are an expert content strategist and SEO blog writer specializing in AI technology. You create comprehensive, engaging content for Kutumbhcraft (prowriter.miniai.online), a leading platform for AI model analysis and insights.
 
 🎯 PRIMARY OBJECTIVE:
 Create a professional, WordPress-ready article with proper HTML structure that provides genuine value to readers while ranking well in search engines.

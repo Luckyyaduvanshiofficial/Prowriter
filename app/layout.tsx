@@ -5,27 +5,27 @@ import { ErrorHandler } from "@/components/error-handler"
 import { AuthProvider } from "@/lib/auth-context"
 
 export const metadata: Metadata = {
-  title: 'Prowriter AI - Premium AI Content Generation SaaS',
-  description: 'Generate high-quality blog posts, articles, and content with Prowriter AI. Advanced AI writing platform for professional content creators.',
+  title: 'Kutumbhcraft - Premium AI Content Generation Platform',
+  description: 'Generate high-quality blog posts, articles, and content with Kutumbhcraft. Advanced AI writing platform for professional content creators.',
   keywords: 'AI writing, content generation, blog writer, AI articles, content creator, SEO writing, automated writing',
-  authors: [{ name: 'Prowriter AI' }],
-  creator: 'Prowriter AI',
-  publisher: 'Prowriter AI',
+  authors: [{ name: 'Kutumbhcraft' }],
+  creator: 'Kutumbhcraft',
+  publisher: 'Kutumbhcraft',
   metadataBase: new URL('https://prowriter.miniai.online'),
   alternates: {
     canonical: '/',
   },
   openGraph: {
-    title: 'Prowriter AI - Premium AI Content Generation SaaS',
-    description: 'Generate high-quality blog posts, articles, and content with Prowriter AI. Advanced AI writing platform for professional content creators.',
+    title: 'Kutumbhcraft - Premium AI Content Generation Platform',
+    description: 'Generate high-quality blog posts, articles, and content with Kutumbhcraft. Advanced AI writing platform for professional content creators.',
     url: 'https://prowriter.miniai.online',
-    siteName: 'Prowriter AI',
+    siteName: 'Kutumbhcraft',
     images: [
       {
         url: '/og-image.jpg',
         width: 1200,
         height: 630,
-        alt: 'Prowriter AI - Premium AI Content Generation'
+        alt: 'Kutumbhcraft - Premium AI Content Generation'
       }
     ],
     locale: 'en_US',
@@ -33,10 +33,10 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Prowriter AI - Premium AI Content Generation SaaS',
-    description: 'Generate high-quality blog posts, articles, and content with Prowriter AI.',
+    title: 'Kutumbhcraft - Premium AI Content Generation Platform',
+    description: 'Generate high-quality blog posts, articles, and content with Kutumbhcraft.',
     images: ['/og-image.jpg'],
-    creator: '@ProwriterAI',
+    creator: '@Kutumbhcraft',
   },
   robots: {
     index: true,
@@ -58,8 +58,8 @@ export const metadata: Metadata = {
 const structuredData = {
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
-  "name": "Prowriter AI",
-  "description": "Premium AI Content Generation SaaS - Generate high-quality blog posts, articles, and content with advanced AI writing platform",
+  "name": "Kutumbhcraft",
+  "description": "Premium AI Content Generation Platform - Generate high-quality blog posts, articles, and content with advanced AI writing platform",
   "url": "https://prowriter.miniai.online",
   "applicationCategory": "BusinessApplication",
   "operatingSystem": "Web",
@@ -82,7 +82,7 @@ const structuredData = {
   ],
   "creator": {
     "@type": "Organization",
-    "name": "Prowriter AI",
+    "name": "Kutumbhcraft",
     "url": "https://prowriter.miniai.online"
   },
   "featureList": [

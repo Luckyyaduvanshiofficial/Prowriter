@@ -332,11 +332,11 @@ export class SEOOptimizer {
       "description": `Comprehensive comparison of ${modelA} and ${modelB} for ${useCase} applications`,
       "author": {
         "@type": "Organization",
-        "name": "Prowriter AI"
+        "name": "Kutumbhcraft"
       },
       "publisher": {
         "@type": "Organization",
-        "name": "Prowriter AI",
+        "name": "Kutumbhcraft",
         "logo": {
           "@type": "ImageObject",
           "url": "https://prowriter.ai/logo.png"

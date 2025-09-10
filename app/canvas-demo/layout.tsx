@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import '../globals.css'
 
 export const metadata: Metadata = {
-  title: 'Prowriter AI - Canvas Writer Demo',
+  title: 'Kutumbhcraft - Canvas Writer Demo',
   description: 'Experience the new Canvas Writer with live typing animation, just like ChatGPT and Gemini.',
 }
 
