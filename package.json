@@ -1,7 +1,7 @@
 {
-  "name": "prowriter-ai",
+  "name": "kutumbhcraft",
   "version": "1.0.0",
-  "description": "Prowriter AI - Premium AI Content Generation SaaS Platform",
+  "description": "Kutumbhcraft - Premium AI Content Generation Platform",
   "private": true,
   "scripts": {
     "dev": "next dev",

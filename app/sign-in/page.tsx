@@ -58,7 +58,7 @@ export default function SignInPage() {
             Welcome Back
           </h1>
           <p className="text-slate-600 dark:text-slate-400">
-            Sign in to your Prowriter AI account
+            Sign in to your Kutumbhcraft account
           </p>
         </div>
 

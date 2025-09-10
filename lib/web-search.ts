@@ -1,4 +1,4 @@
-// Web Search and Scraping Library for Prowriter AI
+// Web Search and Scraping Library for Kutumbhcraft
 // Supports Google Search, SERP API, and web content extraction
 
 import axios from 'axios'
@@ -174,7 +174,7 @@ export class CustomGoogleSearch {
 export class WebScraper {
   private defaultOptions: ScrapeOptions = {
     timeout: 30000,
-    userAgent: 'Mozilla/5.0 (compatible; ProwriterAI/1.0; +https://prowriter.miniai.online)',
+    userAgent: 'Mozilla/5.0 (compatible; Kutumbhcraft/1.0; +https://prowriter.miniai.online)',
     followRedirects: true,
     maxContentLength: 1024 * 1024 // 1MB
   }

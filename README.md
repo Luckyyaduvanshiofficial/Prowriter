@@ -1,8 +1,8 @@
-# Prowriter AI - Premium AI Content Generation Platform
+# Kutumbhcraft - Premium AI Content Generation Platform
 
 🚀 **Enhanced with Neon Database & Auth Integration**
 
-Prowriter AI is a modern, full-featured content generation platform powered by cutting-edge AI technology. This version has been completely updated to use Neon's high-performance PostgreSQL database and authentication system for a unified, scalable solution.
+Kutumbhcraft is a modern, full-featured content generation platform powered by cutting-edge AI technology. This version has been completely updated to use Neon's high-performance PostgreSQL database and authentication system for a unified, scalable solution.
 
 ## ✨ Key Features
 
@@ -234,4 +234,4 @@ For support and questions:
 
 ---
 
-Built with ❤️ by the Prowriter AI team. Powered by Neon's cutting-edge database technology.
+Built with ❤️ by the Kutumbhcraft team. Powered by Neon's cutting-edge database technology.

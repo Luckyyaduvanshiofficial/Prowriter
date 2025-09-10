@@ -62,7 +62,7 @@ export class LangChainBlogPipeline {
           baseURL: "https://openrouter.ai/api/v1",
           defaultHeaders: {
             "HTTP-Referer": "https://prowriter.miniai.online",
-            "X-Title": "Prowriter AI",
+            "X-Title": "Kutumbhcraft",
           },
         },
         temperature: 0.7,

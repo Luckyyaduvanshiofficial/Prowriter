@@ -100,7 +100,7 @@ export function MobileNav({
               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
                 <Brain className="w-5 h-5 text-white" />
               </div>
-              <span className="text-xl font-bold text-gray-900">Prowriter AI</span>
+              <span className="text-xl font-bold text-gray-900">Kutumbhcraft</span>
             </Link>
             {profile && (
               <Badge 

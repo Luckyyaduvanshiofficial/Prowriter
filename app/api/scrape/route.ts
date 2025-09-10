@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
     // Configure scraper options
     const scrapeOptions: ScrapeOptions = {
       timeout: Math.min(parseInt(options.timeout) || 30000, 60000), // Max 60 seconds
-      userAgent: options.userAgent || 'Mozilla/5.0 (compatible; ProwriterAI/1.0; +https://prowriter.miniai.online)',
+      userAgent: options.userAgent || 'Mozilla/5.0 (compatible; Kutumbhcraft/1.0; +https://prowriter.miniai.online)',
       followRedirects: Boolean(options.followRedirects !== false),
       maxContentLength: Math.min(parseInt(options.maxContentLength) || 1024 * 1024, 5 * 1024 * 1024) // Max 5MB
     }
