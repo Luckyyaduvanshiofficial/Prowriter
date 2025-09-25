@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getCurrentUserWithProfile } from '@/lib/auth'
+import { getCurrentUserWithProfile } from '@/lib/appwrite-auth'
 
 export async function GET(request: NextRequest) {
   try {

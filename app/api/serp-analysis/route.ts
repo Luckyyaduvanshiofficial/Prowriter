@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getCurrentUserId } from '@/lib/auth'
+import { getCurrentUserId } from '@/lib/appwrite-auth'
 
 export async function POST(req: NextRequest) {
   try {

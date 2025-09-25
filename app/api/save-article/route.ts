@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getCurrentUserId } from '@/lib/auth'
-import { DatabaseQueries } from '@/lib/neon'
+import { getCurrentUserId } from '@/lib/appwrite-auth'
+import { AppwriteQueries } from '@/lib/appwrite'
 
 export async function POST(request: NextRequest) {
   try {
@@ -41,30 +41,30 @@ export async function POST(request: NextRequest) {
     const wordCount = content.replace(/<[^>]*>/g, '').split(/\s+/).filter((word: string) => word.length > 0).length
     const estimatedReadingTime = Math.ceil(wordCount / 200) // Average reading speed
 
-    // Save article to database
-    const articleId = await DatabaseQueries.createArticle({
-      user_id: userId,
+    // Save article to Appwrite database
+    const articleId = await AppwriteQueries.createArticle({
+      userId: userId,
       title: title,
       content: content,
-      meta_description: metaDescription || null,
+      metaDescription: metaDescription || undefined,
       topic: topic || title,
-      model_a: modelA || '',
-      model_b: modelB || '',
-      use_case: articleType || 'informative',
-      article_length: contentLength || 'medium',
-      ai_engine: aiEngine || 'qwen',
-      seo_keywords: seoKeywords || null,
-      target_audience: targetAudience || null,
-      brand_voice: brandVoice || 'friendly',
-      used_web_search: false,
-      used_serp_analysis: false,
-      word_count: wordCount,
-      estimated_reading_time: estimatedReadingTime,
+      modelA: modelA || '',
+      modelB: modelB || '',
+      useCase: articleType || 'informative',
+      articleLength: contentLength || 'medium',
+      aiEngine: aiEngine || 'qwen',
+      seoKeywords: seoKeywords || undefined,
+      targetAudience: targetAudience || undefined,
+      brandVoice: brandVoice || 'friendly',
+      usedWebSearch: false,
+      usedSerpAnalysis: false,
+      wordCount: wordCount,
+      estimatedReadingTime: estimatedReadingTime,
       status: 'draft'
     })
 
     // Update usage tracking
-    await DatabaseQueries.incrementUsage(userId, 'articles')
+    await AppwriteQueries.incrementUsage(userId, 'articles')
 
     console.log('Article saved successfully:', title)
 
