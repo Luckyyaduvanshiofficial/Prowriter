@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { signInUser, isValidEmail } from '@/lib/auth'
+import { signInUser, isValidEmail } from '@/lib/appwrite-auth'
 
 export async function POST(request: NextRequest) {
   try {
@@ -31,19 +31,19 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Create response with token in cookie
+    // Create response with session in cookie
     const response = NextResponse.json({
       success: true,
       user: result.user,
       message: 'Signed in successfully'
     })
 
-    // Set session cookie
-    response.cookies.set('session-token', result.token, {
+    // Set Appwrite session cookie
+    response.cookies.set('session', result.session.secret, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7 // 7 days
+      expires: new Date(result.session.expire)
     })
 
     return response

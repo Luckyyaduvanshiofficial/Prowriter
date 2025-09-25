@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getCurrentUserId, getCurrentUserWithProfile } from '@/lib/auth'
+import { getCurrentUserId, getCurrentUserWithProfile } from '@/lib/appwrite-auth'
+import { AppwriteQueries } from '@/lib/appwrite'
 
 export async function GET(req: NextRequest) {
   try {
@@ -9,22 +10,18 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
     
-    // In a real app, you'd fetch from your database
-    // For now, we'll return dynamic data based on the user ID and time
-    const today = new Date().toDateString()
-    const userIdHash = userId.split('_')[1] || '0'
-    const dailyUsage = Math.floor(Math.random() * 3) + 1 // Simulate realistic usage
+    // Get usage statistics from Appwrite
+    const usageStats = await AppwriteQueries.getUserUsageStats(userWithProfile.$id)
     
     const profile = {
-      id: userId,
-      plan: 'free', // This could be fetched from user metadata or database
-      articles_generated_today: dailyUsage,
-      articles_limit: 5,
-      total_articles: Math.floor(Math.random() * 15) + 5,
-      articles_this_week: Math.floor(Math.random() * 10) + dailyUsage,
-      articles_this_month: Math.floor(Math.random() * 30) + dailyUsage,
-      created_at: new Date().toISOString(),
-      last_article_generated: new Date(Date.now() - Math.random() * 86400000).toISOString()
+      id: userWithProfile.$id,
+      plan: userWithProfile.profile.plan,
+      articles_generated_today: usageStats.articles_today,
+      articles_limit: usageStats.daily_limit,
+      total_articles: usageStats.articles_total,
+      articles_this_month: usageStats.articles_this_month,
+      created_at: userWithProfile.$createdAt,
+      last_article_generated: userWithProfile.profile.lastGenerationDate
     }
     
     return NextResponse.json({ profile })
@@ -36,7 +33,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId } = await auth()
+    const userId = await getCurrentUserId(req)
     
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -44,14 +41,28 @@ export async function POST(req: NextRequest) {
     
     const { plan, articles_generated_today } = await req.json()
     
-    // In a real app, you'd update your database
-    // For now, we'll just return the updated data
+    // Get current profile
+    const profile = await AppwriteQueries.getProfileByUserId(userId)
+    if (!profile) {
+      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+    }
+
+    // Update profile with new data
+    const updates: any = {}
+    if (plan) updates.plan = plan
+    if (articles_generated_today !== undefined) updates.articlesGeneratedToday = articles_generated_today
+
+    await AppwriteQueries.updateProfile(profile.$id!, updates)
+    
+    // Return updated usage stats
+    const usageStats = await AppwriteQueries.getUserUsageStats(userId)
+    
     const updatedProfile = {
       id: userId,
-      plan: plan || 'free',
-      articles_generated_today: articles_generated_today || 0,
-      articles_limit: plan === 'pro' ? 25 : 5,
-      total_articles: Math.floor(Math.random() * 20) + 5,
+      plan: usageStats.plan,
+      articles_generated_today: usageStats.articles_today,
+      articles_limit: usageStats.daily_limit,
+      total_articles: usageStats.articles_total,
       updated_at: new Date().toISOString()
     }
     

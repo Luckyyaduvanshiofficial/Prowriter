@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getCurrentUserId } from '@/lib/auth'
-import { DatabaseQueries } from '@/lib/neon'
+import { getCurrentUserId } from '@/lib/appwrite-auth'
+import { AppwriteQueries } from '@/lib/appwrite'
 
 export async function GET(request: NextRequest) {
   try {
@@ -19,8 +19,8 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '10')
     const offset = (page - 1) * limit
 
-    // Get articles from database
-    const articles = await DatabaseQueries.getArticlesByUser(userId, limit, offset)
+    // Get articles from Appwrite database
+    const articles = await AppwriteQueries.getArticlesByUser(userId, limit, offset)
 
     return NextResponse.json({
       articles: articles,
@@ -55,7 +55,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Delete the article (only if it belongs to the user)
-    await DatabaseQueries.deleteArticle(articleId, userId)
+    await AppwriteQueries.deleteArticle(articleId, userId)
 
     return NextResponse.json({
       success: true,

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { registerUser, isValidEmail, isValidPassword } from '@/lib/auth'
+import { registerUser, isValidEmail, isValidPassword } from '@/lib/appwrite-auth'
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,8 +29,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Build full name from firstName and lastName
+    const fullName = [firstName, lastName].filter(Boolean).join(' ')
+
     // Attempt to register user
-    const result = await registerUser(email, password, firstName, lastName)
+    const result = await registerUser(email, password, fullName)
 
     if ('error' in result) {
       return NextResponse.json(
@@ -39,19 +42,19 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Create response with token in cookie
+    // Create response with session in cookie
     const response = NextResponse.json({
       success: true,
       user: result.user,
       message: 'Account created successfully'
     })
 
-    // Set session cookie
-    response.cookies.set('session-token', result.token, {
+    // Set Appwrite session cookie
+    response.cookies.set('session', result.session.secret, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7 // 7 days
+      expires: new Date(result.session.expire)
     })
 
     return response
