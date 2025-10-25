@@ -4,7 +4,7 @@
 export interface AIModel {
   id: string
   name: string
-  provider: 'google' | 'baseten' | 'deepseek'
+  provider: 'google' | 'baseten' | 'deepseek' | 'openrouter'
   modelId: string
   tier: 'free' | 'pro'
   features: string[]
@@ -21,20 +21,78 @@ export interface AIProvider {
   models: AIModel[]
 }
 
-// AI Models Configuration - Only Baseten, Gemini, and DeepSeek
+// AI Models Configuration - Multiple Providers
 export const AI_MODELS: AIModel[] = [
   // Google AI Models (Direct) - FREE TIER (Default)
   {
     id: 'gemini-2-flash',
-    name: 'Gemini 2.5 Flash',
+    name: 'Gemini 2.0 Flash',
     provider: 'google',
-    modelId: 'gemini-2.5-flash-exp',
+    modelId: 'gemini-2.0-flash-exp',
     tier: 'free',
     features: ['Fast Generation', 'Real-time', 'Efficient', 'Latest'],
     maxTokens: 8192,
     costPer1000Tokens: 0,
     description: '⭐ Default - Latest Gemini model optimized for speed and efficiency'
   },
+  
+  // OpenRouter Free Models - FREE TIER 🎉
+  {
+    id: 'openrouter-deepseek-chat',
+    name: 'DeepSeek Chat v3.1',
+    provider: 'openrouter',
+    modelId: 'deepseek/deepseek-chat-v3.1:free',
+    tier: 'free',
+    features: ['Free', 'Advanced Reasoning', 'Long Context', 'Fast'],
+    maxTokens: 8192,
+    costPer1000Tokens: 0,
+    description: '🆓 Free - DeepSeek Chat v3.1 via OpenRouter (completely free)'
+  },
+  {
+    id: 'openrouter-deepseek-r1',
+    name: 'DeepSeek R1',
+    provider: 'openrouter',
+    modelId: 'deepseek/deepseek-r1-0528:free',
+    tier: 'free',
+    features: ['Free', 'Reasoning', 'Problem Solving', 'Fast'],
+    maxTokens: 8192,
+    costPer1000Tokens: 0,
+    description: '🆓 Free - DeepSeek R1 reasoning model via OpenRouter'
+  },
+  {
+    id: 'openrouter-llama-70b',
+    name: 'Llama 3.3 70B',
+    provider: 'openrouter',
+    modelId: 'meta-llama/llama-3.3-70b-instruct:free',
+    tier: 'free',
+    features: ['Free', 'High Quality', 'Instruction Following', 'Meta'],
+    maxTokens: 8192,
+    costPer1000Tokens: 0,
+    description: '🆓 Free - Meta Llama 3.3 70B via OpenRouter (powerful & free)'
+  },
+  {
+    id: 'openrouter-gemma-27b',
+    name: 'Gemma 3 27B',
+    provider: 'openrouter',
+    modelId: 'google/gemma-3-27b-it:free',
+    tier: 'free',
+    features: ['Free', 'Google', 'Efficient', 'Instruction Tuned'],
+    maxTokens: 8192,
+    costPer1000Tokens: 0,
+    description: '🆓 Free - Google Gemma 3 27B via OpenRouter'
+  },
+  {
+    id: 'openrouter-hermes-405b',
+    name: 'Hermes 3 Llama 405B',
+    provider: 'openrouter',
+    modelId: 'nousresearch/hermes-3-llama-3.1-405b:free',
+    tier: 'free',
+    features: ['Free', 'Ultra Large', 'Advanced', 'High Quality'],
+    maxTokens: 8192,
+    costPer1000Tokens: 0,
+    description: '🆓 Free - Hermes 3 405B via OpenRouter (massive model, free!)'
+  },
+  
   // Baseten Models - PRO TIER
   {
     id: 'gpt-oss-120b',
@@ -47,6 +105,7 @@ export const AI_MODELS: AIModel[] = [
     costPer1000Tokens: 2.0,
     description: '🔥 Pro - High-performance open-source GPT model with 120B parameters'
   },
+  
   // DeepSeek API - PRO TIER
   {
     id: 'deepseek-chat',
@@ -72,7 +131,7 @@ export const AI_MODELS: AIModel[] = [
   }
 ]
 
-// Provider Configurations - Only Baseten, Gemini, and DeepSeek
+// Provider Configurations - Google, Baseten, DeepSeek, and OpenRouter
 export const AI_PROVIDERS: Record<string, AIProvider> = {
   google: {
     id: 'google',
@@ -94,6 +153,13 @@ export const AI_PROVIDERS: Record<string, AIProvider> = {
     baseURL: 'https://api.deepseek.com/v1',
     apiKeyEnv: 'DEEPSEEK_API_KEY',
     models: AI_MODELS.filter(m => m.provider === 'deepseek')
+  },
+  openrouter: {
+    id: 'openrouter',
+    name: 'OpenRouter',
+    baseURL: 'https://openrouter.ai/api/v1',
+    apiKeyEnv: 'OPENROUTER_API_KEY',
+    models: AI_MODELS.filter(m => m.provider === 'openrouter')
   }
 }
 
@@ -179,6 +245,8 @@ export class AIProviderClient {
           return await this.generateBaseten({ ...request, temperature: optimizedTemperature }, model)
         case 'deepseek':
           return await this.generateDeepSeek({ ...request, temperature: optimizedTemperature }, model)
+        case 'openrouter':
+          return await this.generateOpenRouter({ ...request, temperature: optimizedTemperature }, model)
         default:
           throw new Error(`Unsupported provider: ${this.provider.id}`)
       }
@@ -253,17 +321,22 @@ export class AIProviderClient {
 
 
   private async generateBaseten(request: GenerationRequest, model: AIModel): Promise<GenerationResponse> {
-    // Optimize parameters for Baseten's GPT OSS model
+    // Optimize parameters for Baseten's GPT OSS model (verified against official API)
     const optimizedConfig = {
-      model: model.modelId,
+      model: model.modelId, // "openai/gpt-oss-120b"
       messages: request.messages,
-      temperature: request.temperature || 0.8, // Slightly higher for creativity
-      max_tokens: Math.min(request.maxTokens || 2048, model.maxTokens),
-      top_p: 0.9,        // Nucleus sampling for quality
-      presence_penalty: 0.6,  // Encourage diverse content
-      frequency_penalty: 0.3, // Reduce repetition
-      stop: [],
-      stream: false
+      temperature: request.temperature !== undefined ? request.temperature : 1, // Match official default
+      max_tokens: Math.min(request.maxTokens || 1000, model.maxTokens), // Match official default
+      top_p: request.stream ? 1 : 0.9, // Official uses top_p: 1
+      presence_penalty: 0, // Official default
+      frequency_penalty: 0, // Official default
+      stream: false, // Set to true for streaming support
+      ...(request.stream && {
+        stream_options: {
+          include_usage: true,
+          continuous_usage_stats: true
+        }
+      })
     }
 
     const response = await fetch(`${this.provider.baseURL}/chat/completions`, {
@@ -342,6 +415,53 @@ export class AIProviderClient {
       provider: 'deepseek'
     }
   }
+
+  private async generateOpenRouter(request: GenerationRequest, model: AIModel): Promise<GenerationResponse> {
+    // OpenRouter uses OpenAI-compatible API format
+    const optimizedConfig = {
+      model: model.modelId, // Full model ID like "deepseek/deepseek-chat-v3.1:free"
+      messages: request.messages,
+      temperature: request.temperature || 0.7,
+      max_tokens: Math.min(request.maxTokens || 4096, model.maxTokens),
+      top_p: 0.95,
+      frequency_penalty: 0.1,
+      presence_penalty: 0.1,
+      stream: false
+    }
+
+    const response = await fetch(`${this.provider.baseURL}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${this.apiKey}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'https://prowriter.app', // Required by OpenRouter
+        'X-Title': 'ProWriter AI' // Optional but recommended
+      },
+      body: JSON.stringify(optimizedConfig)
+    })
+
+    if (!response.ok) {
+      const errorData = await response.text()
+      throw new Error(`OpenRouter API error: ${response.status} ${errorData}`)
+    }
+
+    const data = await response.json()
+    
+    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+      throw new Error('Invalid response format from OpenRouter')
+    }
+
+    return {
+      content: data.choices[0].message.content,
+      usage: data.usage ? {
+        promptTokens: data.usage.prompt_tokens,
+        completionTokens: data.usage.completion_tokens,
+        totalTokens: data.usage.total_tokens
+      } : undefined,
+      model: model.id,
+      provider: 'openrouter'
+    }
+  }
 }
 
 // Factory function to create provider clients
@@ -364,7 +484,7 @@ export function getBestModelForTier(userTier: 'free' | 'pro', preferredProvider?
     }
   }
   
-  // Default to Gemini 2.5 Flash (free), then Baseten GPT OSS 120B (pro), then DeepSeek Chat (pro)
+  // Default to Gemini 2.0 Flash (free), then Baseten GPT OSS 120B (pro), then DeepSeek Chat (pro)
   return availableModels.find(m => m.id === 'gemini-2-flash') 
     || availableModels.find(m => m.id === 'gpt-oss-120b') 
     || availableModels.find(m => m.id === 'deepseek-chat') 

@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Copy, Download, Eye, Code } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
+import { sanitizeHTML, getWordCount, getReadingTime, extractMetaDescription } from "@/lib/html-sanitizer"
 
 interface GeneratedContentProps {
   article: {
@@ -26,76 +27,13 @@ interface GeneratedContentProps {
 export function GeneratedContent({ article }: GeneratedContentProps) {
   const [activeTab, setActiveTab] = useState("preview")
 
-  // Function to sanitize and enhance content display
+  // Use the robust HTML sanitizer
   const sanitizeContent = (content: string): string => {
-    let sanitized = content
-    
-    // Remove AI-style star symbols and artifacts
-    sanitized = sanitized.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>') // Convert **text** to <strong>
-    sanitized = sanitized.replace(/\*([^*]+)\*/g, '<em>$1</em>') // Convert *text* to <em>
-    sanitized = sanitized.replace(/^\*\s*/gm, '') // Remove bullet point stars at line start
-    sanitized = sanitized.replace(/\s\*\s/g, ' ') // Remove orphaned stars
-    
-    // Remove markdown-style headings if any leaked through
-    sanitized = sanitized.replace(/^#{1,6}\s+/gm, '') // Remove ### heading markers
-    
-    // Improve spacing around headings
-    sanitized = sanitized.replace(/(<\/h[1-6]>)/g, '$1\n')
-    sanitized = sanitized.replace(/(<h[1-6][^>]*>)/g, '\n$1')
-    
-    // Ensure proper spacing around paragraphs
-    sanitized = sanitized.replace(/(<\/p>)(<p>)/g, '$1\n$2')
-    
-    // Clean up multiple consecutive line breaks
-    sanitized = sanitized.replace(/\n{3,}/g, '\n\n')
-    
-    // Ensure tables have proper styling if not already present
-    sanitized = sanitized.replace(
-      /<table(?![^>]*style=)/g, 
-      '<table style="width: 100%; border-collapse: collapse; margin: 20px 0; border: 1px solid #e5e7eb;"'
-    )
-    
-    // Enhance blockquotes if not already styled
-    sanitized = sanitized.replace(
-      /<blockquote(?![^>]*style=)/g,
-      '<blockquote style="border-left: 4px solid #3b82f6; padding: 16px; margin: 20px 0; background-color: #f8fafc; font-style: italic;"'
-    )
-    
-    // Add proper spacing around divs with background
-    sanitized = sanitized.replace(
-      /<div style="[^"]*background-color[^"]*">/g,
-      (match) => match.replace('margin: 20px 0;', 'margin: 24px 0;')
-    )
-    
-    return sanitized.trim()
+    return sanitizeHTML(content)
   }
 
-  // Function to extract summary or key points from content
-  const extractSummary = (content: string): string | null => {
-    const sanitized = sanitizeContent(content)
-    
-    // Look for summary sections (using compatible regex flags)
-    const summaryMatch = sanitized.match(/<h[2-4][^>]*>.*?summary.*?<\/h[2-4]>([\s\S]*?)(?=<h[1-4]|$)/i)
-    if (summaryMatch) {
-      return summaryMatch[1].trim()
-    }
-    
-    // Look for key points or takeaways
-    const keyPointsMatch = sanitized.match(/<h[2-4][^>]*>.*?(key points|takeaways|highlights).*?<\/h[2-4]>([\s\S]*?)(?=<h[1-4]|$)/i)
-    if (keyPointsMatch) {
-      return keyPointsMatch[1].trim()
-    }
-    
-    // Extract first paragraph as fallback
-    const firstParagraph = sanitized.match(/<p[^>]*>([\s\S]*?)<\/p>/i)
-    if (firstParagraph && firstParagraph[1].length > 100) {
-      return firstParagraph[1].trim()
-    }
-    
-    return null
-  }
-
-  const summary = extractSummary(article.content)
+  // Extract summary using meta description
+  const summary = extractMetaDescription(sanitizeContent(article.content))
 
   const copyToClipboard = async (text: string) => {
     try {
@@ -129,11 +67,9 @@ export function GeneratedContent({ article }: GeneratedContentProps) {
     return new Date(dateString).toLocaleString()
   }
 
-  const getWordCount = (text: string) => {
-    // Remove HTML tags for accurate word count
-    const plainText = text.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
-    return plainText.split(/\s+/).filter((word) => word.length > 0).length
-  }
+  // Use sanitizer functions for accurate counts
+  const wordCount = getWordCount(article.content)
+  const readingTime = getReadingTime(article.content)
 
   return (
     <div className="space-y-6">
@@ -162,7 +98,8 @@ export function GeneratedContent({ article }: GeneratedContentProps) {
             <Badge variant="secondary">{article.metadata.contentType}</Badge>
             <Badge variant="outline">Tone: {article.metadata.tone}</Badge>
             <Badge variant="outline">Temperature: {article.metadata.temperature}</Badge>
-            <Badge variant="outline">~{getWordCount(article.content)} words</Badge>
+            <Badge variant="outline">~{wordCount} words</Badge>
+            <Badge variant="outline">{readingTime} min read</Badge>
           </div>
 
           {article.metadata.modelA && article.metadata.modelB && (

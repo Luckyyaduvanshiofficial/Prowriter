@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateNextLevelBlog } from "@/lib/langchain-blog-pipeline";
+import { sanitizeHTML, getWordCount, getReadingTime } from "@/lib/html-sanitizer";
+import { getUserProfile, updateUserProfile } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { 
+      userId,
       topic, 
       tone = "professional", 
       length = "medium",
@@ -24,6 +27,32 @@ export async function POST(request: NextRequest) {
         { error: "Topic is required for next-level blog generation" },
         { status: 400 }
       );
+    }
+
+    // Increment user's article count in database
+    if (userId) {
+      try {
+        const userProfile = await getUserProfile(userId);
+        if (userProfile) {
+          const today = new Date().toISOString().split('T')[0];
+          const lastGenDate = userProfile.lastGenerationDate?.split('T')[0];
+          
+          // Reset count if it's a new day
+          const newCount = (lastGenDate === today) 
+            ? (userProfile.articlesGeneratedToday || 0) + 1 
+            : 1;
+          
+          await updateUserProfile(userId, {
+            articlesGeneratedToday: newCount,
+            lastGenerationDate: new Date().toISOString()
+          });
+          
+          console.log(`✅ Updated article count for user ${userId}: ${newCount}`);
+        }
+      } catch (error) {
+        console.error('Failed to update user article count:', error);
+        // Continue with generation even if count update fails
+      }
     }
 
     console.log(`🚀 Starting next-level blog generation for: ${topic}`);
@@ -80,29 +109,49 @@ export async function POST(request: NextRequest) {
     }
 
     // Step 2: Generate next-level blog post with research data
-    const result = await generateNextLevelBlog(topic, {
-      provider,
-      modelName,
-      apiKey: provider === 'google' ? process.env.GOOGLE_AI_API_KEY : 
-               provider === 'baseten' ? process.env.BASETEN_API_KEY :
-               process.env.DEEPSEEK_API_KEY,
-      tone,
-      length,
-      includeInteractiveElements,
-      addUniqueEnhancements,
-      generateAdvancedMetadata
-    });
+    let result;
+    try {
+      result = await generateNextLevelBlog(topic, {
+        provider,
+        modelName,
+        apiKey: provider === 'google' ? process.env.GOOGLE_AI_API_KEY : 
+                 provider === 'baseten' ? process.env.BASETEN_API_KEY :
+                 provider === 'openrouter' ? process.env.OPENROUTER_API_KEY :
+                 process.env.DEEPSEEK_API_KEY,
+        tone,
+        length,
+        includeInteractiveElements,
+        addUniqueEnhancements,
+        generateAdvancedMetadata
+      });
 
-    console.log(`✅ Next-level blog generated successfully: ${result?.article?.length || 0} characters`);
+      if (!result || !result.article) {
+        console.error("generateNextLevelBlog returned invalid result:", result);
+        throw new Error("Blog generation failed to produce content");
+      }
+
+      console.log(`✅ Next-level blog generated successfully: ${result.article.length} characters`);
+    } catch (generationError) {
+      console.error("generateNextLevelBlog failed:", generationError);
+      throw new Error(`Blog generation failed: ${generationError instanceof Error ? generationError.message : 'Unknown error'}`);
+    }
 
     // Safely access result properties with fallbacks
-    const article = result?.article || result?.final_article || "<h1>Error</h1><p>Article generation failed.</p>";
-    const metadata = result?.metadata || {};
-    const resultResearchData = result?.research_data || [];
-    const outline = result?.outline || "";
-    const sections = result?.sections || {};
-    const errors = result?.errors || [];
-    const enhancements = result?.enhancements || {
+    const rawArticle = result.article || "<h1>Error</h1><p>Article generation failed.</p>";
+    
+    // CRITICAL: Sanitize the article to remove ALL markdown artifacts
+    const article = sanitizeHTML(rawArticle);
+    
+    const metadata = result.metadata || {
+      meta_description: "",
+      keywords: [],
+      reading_time: 0
+    };
+    const resultResearchData = result.research_data || [];
+    const outline = result.outline || "";
+    const sections = result.sections || {};
+    const errors = result.errors || [];
+    const enhancements = result.enhancements || {
       uniqueness_applied: false,
       interactive_elements_added: false,
       advanced_metadata_generated: false
@@ -114,7 +163,12 @@ export async function POST(request: NextRequest) {
       data: {
         article: article,
         metadata: {
-          ...metadata,
+          meta_description: metadata.meta_description || `Complete guide about ${topic}`,
+          keywords: metadata.keywords || [topic],
+          reading_time: metadata.reading_time || getReadingTime(article),
+          social_media_snippets: metadata.social_media_snippets || [],
+          featured_snippet_optimized: metadata.featured_snippet_optimized || "",
+          schema_markup: metadata.schema_markup || "",
           generation_type: "next-level",
           features_enabled: {
             interactive_elements: includeInteractiveElements,
@@ -129,11 +183,11 @@ export async function POST(request: NextRequest) {
         enhancements: enhancements,
         statistics: {
           generated_at: new Date().toISOString(),
-          word_count: article.replace(/<[^>]*>/g, '').split(/\s+/).filter(w => w.length > 0).length,
-          estimated_reading_time: metadata.reading_time || Math.ceil(article.replace(/<[^>]*>/g, '').split(/\s+/).length / 200),
+          word_count: getWordCount(article),
+          estimated_reading_time: getReadingTime(article),
           research_sources: Array.isArray(resultResearchData) ? resultResearchData.length : 0,
           sections_generated: Object.keys(sections).length,
-          keywords_extracted: metadata.keywords?.length || 0
+          keywords_extracted: (metadata.keywords || []).length
         },
         pipeline_info: {
           version: "next-level-v2.0",
@@ -148,11 +202,22 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('❌ Next-level blog generation error:', error);
     
+    // Provide detailed error information
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    
+    console.error('Error details:', {
+      message: errorMessage,
+      stack: errorStack,
+      timestamp: new Date().toISOString()
+    });
+    
     return NextResponse.json(
       {
         success: false,
         error: "Failed to generate next-level blog post",
-        details: error instanceof Error ? error.message : "Unknown error",
+        details: errorMessage,
+        suggestion: "Please try again with a simpler topic or contact support if the issue persists.",
         timestamp: new Date().toISOString(),
         pipeline_version: "next-level-v2.0"
       },

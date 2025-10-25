@@ -547,6 +547,7 @@ ${articleType === 'comparison' ? `
         },
         body: JSON.stringify({
           ...requestPayload,
+          userId: clerkUser?.id, // Pass userId to API for tracking
           // Next-level specific options
           nextLevel: true,
           provider: providerToUse, // Use dynamic provider based on selected model
@@ -611,11 +612,32 @@ ${articleType === 'comparison' ? `
       
       setCurrentStep(5)
       
-      // Update daily count in profile
-      setProfile({
-        ...profile,
-        articles_generated_today: profile.articles_generated_today + 1
-      })
+      // Reload profile from database to get updated article count
+      if (clerkUser?.id) {
+        try {
+          const profileResponse = await fetch(`/api/user-profile?userId=${clerkUser.id}`)
+          if (profileResponse.ok) {
+            const profileData = await profileResponse.json()
+            if (profileData.profile) {
+              setProfile(profileData.profile)
+              console.log('✅ Profile reloaded with updated count:', profileData.profile.articles_generated_today)
+            }
+          }
+        } catch (error) {
+          console.error('Failed to reload profile:', error)
+          // Fallback: update local state
+          setProfile({
+            ...profile,
+            articles_generated_today: profile.articles_generated_today + 1
+          })
+        }
+      } else {
+        // Fallback: update local state if no user ID
+        setProfile({
+          ...profile,
+          articles_generated_today: profile.articles_generated_today + 1
+        })
+      }
       
     } catch (err) {
       console.error("Error generating article:", err)
@@ -674,12 +696,25 @@ ${articleType === 'comparison' ? `
         throw new Error(data.error)
       }
 
-      alert("Article saved successfully!")
+      // Check if it's a warning (database not configured)
+      if (data.warning) {
+        // Silently succeed - don't bother user with database configuration
+        console.log('Article generated successfully (not saved to database - Appwrite not configured)')
+        // Don't show alert - user can still use the article
+      } else {
+        alert("✅ Article saved successfully to database!")
+      }
     } catch (err) {
       console.error("Error saving article:", err)
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred'
       setError(errorMessage)
-      alert(`Failed to save article: ${errorMessage}. Please try again.`)
+      
+      // Show friendlier message if it's a database configuration issue
+      if (errorMessage.includes('Database configuration')) {
+        alert(`Article generated but not saved.\n\nReason: Appwrite database is not configured.\n\nYou can still copy or download the article.`)
+      } else {
+        alert(`Failed to save article: ${errorMessage}. Please try again.`)
+      }
     } finally {
       setSaving(false)
     }
@@ -1205,7 +1240,7 @@ ${articleType === 'comparison' ? `
                           <SelectItem value="google">
                             <div className="flex items-center space-x-2">
                               <span>🟡 Google AI</span>
-                              <Badge variant="secondary" className="text-xs">Gemini 2.5 Flash</Badge>
+                              <Badge variant="secondary" className="text-xs">Gemini 2.0 Flash</Badge>
                             </div>
                           </SelectItem>
                           <SelectItem value="baseten">

@@ -3,20 +3,16 @@ import { createWebResearcher } from "./web-search";
 
 // Define the state structure for our blog generation pipeline
 const BlogGenerationState = Annotation.Root({
-  topic: Annotation<string>,
-  tone: Annotation<string>,
-  length: Annotation<string>,
-  research_data: Annotation<string[]>,
-  outline: Annotation<string>,
-  sections: Annotation<Record<string, string>>,
-  final_article: Annotation<string>,
-  metadata: Annotation<{
-    meta_description: string;
-    keywords: string[];
-    reading_time: number;
-  }>,
-  errors: Annotation<string[]>,
-  current_step: Annotation<string>
+  topic: Annotation,
+  tone: Annotation,
+  length: Annotation,
+  research_data: Annotation,
+  outline: Annotation,
+  sections: Annotation,
+  final_article: Annotation,
+  metadata: Annotation,
+  errors: Annotation,
+  current_step: Annotation
 });
 
 type BlogGenerationStateType = typeof BlogGenerationState.State;
@@ -28,14 +24,14 @@ export class LangChainBlogPipeline {
   private graph: any;
 
   constructor(
-    provider: 'google' | 'baseten' | 'deepseek' = 'google',
+    provider: 'google' | 'baseten' | 'deepseek' | 'openrouter' = 'google',
     modelName?: string,
     apiKey?: string
   ) {
     // Initialize the LLM based on provider
     if (provider === 'google') {
       this.llm = new ChatGoogleGenerativeAI({
-        modelName: modelName || "gemini-2.5-flash-exp",
+        modelName: modelName || "gemini-2.0-flash-exp",
         apiKey: apiKey || process.env.GOOGLE_AI_API_KEY,
         temperature: 0.7,
         maxOutputTokens: 4096,
@@ -68,10 +64,26 @@ export class LangChainBlogPipeline {
         temperature: 0.7,
         maxTokens: 8192,
       });
+    } else if (provider === 'openrouter') {
+      // Use OpenAI-compatible interface for OpenRouter
+      this.llm = new ChatOpenAI({
+        modelName: modelName || "deepseek/deepseek-chat-v3.1:free",
+        openAIApiKey: apiKey || process.env.OPENROUTER_API_KEY,
+        configuration: {
+          baseURL: "https://openrouter.ai/api/v1",
+          defaultHeaders: {
+            "Content-Type": "application/json",
+            "HTTP-Referer": process.env.NEXT_PUBLIC_SITE_URL || "https://prowriter.app",
+            "X-Title": "ProWriter AI"
+          },
+        },
+        temperature: 0.7,
+        maxTokens: 8192,
+      });
     } else {
       // Default to Google Gemini
       this.llm = new ChatGoogleGenerativeAI({
-        modelName: "gemini-2.5-flash-exp",
+        modelName: "gemini-2.0-flash-exp",
         apiKey: process.env.GOOGLE_AI_API_KEY,
         temperature: 0.7,
         maxOutputTokens: 4096,
@@ -619,147 +631,100 @@ export class LangChainBlogPipeline {
       advanced_metadata_generated: boolean;
     };
   }> {
-    // First, run the base generation pipeline
-    const baseResult = await this.generateBlogPost(topic, tone, length);
-    
-    let enhancedArticle = baseResult.article;
-    let enhancedMetadata = baseResult.metadata;
-    const enhancements = {
-      uniqueness_applied: false,
-      interactive_elements_added: false,
-      advanced_metadata_generated: false
-    };
-
     try {
+      // First, run the base generation pipeline
+      console.log(`🚀 Starting next-level blog generation for topic: ${topic}`);
+      const baseResult = await this.generateBlogPost(topic, tone, length);
+      
+      // Validate base result
+      if (!baseResult || !baseResult.article) {
+        console.error("Base generation failed - no article produced");
+        throw new Error("Base blog generation failed to produce content");
+      }
+      
+      console.log(`✅ Base article generated: ${baseResult.article.length} characters`);
+      
+      let enhancedArticle = baseResult.article;
+      let enhancedMetadata = baseResult.metadata || {
+        meta_description: "",
+        keywords: [],
+        reading_time: 0
+      };
+      const enhancements = {
+        uniqueness_applied: false,
+        interactive_elements_added: false,
+        advanced_metadata_generated: false
+      };
+
+      // Apply enhancements with individual try-catch blocks for each
+      // This ensures one failing enhancement doesn't break the whole process
+      
       // Apply uniqueness enhancements
       if (options.addUniqueEnhancements !== false) {
-        console.log("🚀 Applying uniqueness enhancements...");
-        enhancedArticle = await this.enhanceArticleUniqueness(
-          topic,
-          enhancedArticle,
-          baseResult.research_data
-        );
-        enhancements.uniqueness_applied = true;
+        try {
+          console.log("🚀 Applying uniqueness enhancements...");
+          const enhanced = await this.enhanceArticleUniqueness(
+            topic,
+            enhancedArticle,
+            baseResult.research_data || []
+          );
+          if (enhanced && enhanced.length > 0) {
+            enhancedArticle = enhanced;
+            enhancements.uniqueness_applied = true;
+            console.log("✅ Uniqueness enhancements applied");
+          }
+        } catch (error) {
+          console.warn("⚠️ Uniqueness enhancement failed, using base article:", error);
+        }
       }
 
       // Add interactive elements
       if (options.includeInteractiveElements !== false) {
-        console.log("🎮 Adding interactive elements...");
-        enhancedArticle = await this.addInteractiveElements(enhancedArticle);
-        enhancements.interactive_elements_added = true;
+        try {
+          console.log("🎮 Adding interactive elements...");
+          const enhanced = await this.addInteractiveElements(enhancedArticle);
+          if (enhanced && enhanced.length > 0) {
+            enhancedArticle = enhanced;
+            enhancements.interactive_elements_added = true;
+            console.log("✅ Interactive elements added");
+          }
+        } catch (error) {
+          console.warn("⚠️ Interactive elements enhancement failed, using current article:", error);
+        }
       }
 
       // Generate advanced metadata
       if (options.generateAdvancedMetadata !== false) {
-        console.log("📊 Generating advanced metadata...");
-        const advancedMeta = await this.generateAdvancedMetadata(enhancedArticle, topic);
-        enhancedMetadata = {
-          ...enhancedMetadata,
-          ...advancedMeta
-        };
-        enhancements.advanced_metadata_generated = true;
+        try {
+          console.log("📊 Generating advanced metadata...");
+          const advancedMeta = await this.generateAdvancedMetadata(enhancedArticle, topic);
+          if (advancedMeta) {
+            enhancedMetadata = {
+              ...enhancedMetadata,
+              ...advancedMeta
+            };
+            enhancements.advanced_metadata_generated = true;
+            console.log("✅ Advanced metadata generated");
+          }
+        } catch (error) {
+          console.warn("⚠️ Advanced metadata generation failed, using base metadata:", error);
+        }
       }
 
-    } catch (error) {
-      console.warn("Enhancement failed, using base article:", error);
-    }
-
-    return {
-      article: enhancedArticle,
-      metadata: enhancedMetadata,
-      research_data: baseResult.research_data,
-      outline: baseResult.outline,
-      sections: baseResult.sections,
-      errors: baseResult.errors,
-      enhancements
-    };
-  }
-  async generateBlogPost(
-    topic: string,
-    tone: string = "professional",
-    length: string = "medium"
-  ): Promise<{
-    article: string;
-    metadata: {
-      meta_description: string;
-      keywords: string[];
-      reading_time: number;
-    };
-    research_data: string[];
-    outline: string;
-    sections: Record<string, string>;
-    errors: string[];
-  }> {
-    const initialState: BlogGenerationStateType = {
-      topic,
-      tone,
-      length,
-      research_data: [],
-      outline: "",
-      sections: {},
-      final_article: "",
-      metadata: {
-        meta_description: "",
-        keywords: [],
-        reading_time: 0
-      },
-      errors: [],
-      current_step: "initialized"
-    };
-
-    try {
-      const result = await this.graph.invoke(initialState, {
-        configurable: { thread_id: `blog-${Date.now()}` }
-      });
+      console.log(`🎉 Next-level blog post complete with enhancements:`, enhancements);
 
       return {
-        article: result.final_article || "",
-        metadata: result.metadata || {
-          meta_description: "",
-          keywords: [],
-          reading_time: 0
-        },
-        research_data: result.research_data || [],
-        outline: result.outline || "",
-        sections: result.sections || {},
-        errors: result.errors || []
+        article: enhancedArticle,
+        metadata: enhancedMetadata,
+        research_data: baseResult.research_data || [],
+        outline: baseResult.outline || "",
+        sections: baseResult.sections || {},
+        errors: baseResult.errors || [],
+        enhancements
       };
     } catch (error) {
-      console.error("Blog generation pipeline failed:", error);
-      throw new Error(`Blog generation failed: ${error}`);
-    }
-  }
-
-  // Stream the generation process for real-time updates
-  async *generateBlogPostStream(
-    topic: string,
-    tone: string = "professional",
-    length: string = "medium"
-  ) {
-    const initialState: BlogGenerationStateType = {
-      topic,
-      tone,
-      length,
-      research_data: [],
-      outline: "",
-      sections: {},
-      final_article: "",
-      metadata: {
-        meta_description: "",
-        keywords: [],
-        reading_time: 0
-      },
-      errors: [],
-      current_step: "initialized"
-    };
-
-    const config = { configurable: { thread_id: `blog-stream-${Date.now()}` } };
-    
-    for await (const output of await this.graph.stream(initialState, config)) {
-      yield {
-        step: output.current_step || "processing",
-        data: output
-      };
+      console.error("❌ Next-level blog generation failed:", error);
+      throw error;
     }
   }
 
@@ -859,84 +824,96 @@ export class LangChainBlogPipeline {
     baseArticle: string,
     researchData: string[]
   ): Promise<string> {
-    const enhancementPrompt = ChatPromptTemplate.fromMessages([
-      ["system", `You are a content innovation expert. Take this base article and make it truly unique and next-level by adding:
+    try {
+      const enhancementPrompt = ChatPromptTemplate.fromMessages([
+        ["system", `You are a content innovation expert. Take this base article and make it truly unique and next-level by adding:
 
-      🔥 UNIQUENESS ENHANCERS:
-      - Contrarian viewpoints or myth-busting sections
-      - Personal stories and real-world case studies
-      - Industry predictions for 2025-2026
-      - Step-by-step frameworks and methodologies
-      - Comparison tables and decision matrices
-      - Interactive checklists and assessments
-      - Quote collections from industry experts
-      - Data visualizations and infographic descriptions
-      
-      🎯 FORMATTING UPGRADES:
-      - Add compelling subheadings with power words
-      - Include "Quick Takeaway" boxes for key points
-      - Create "Pro vs. Beginner" comparison sections
-      - Add "Common Pitfalls" warning boxes
-      - Include "Action Items" at the end of sections
-      - Add "Related Tool/Resource" recommendations
-      
-      📊 CONTENT ADDITIONS:
-      - Statistics with source citations
-      - Real company examples and case studies
-      - Tool recommendations with pros/cons
-      - Cost breakdowns and ROI calculations
-      - Timeline projections and milestones
-      - Risk assessments and mitigation strategies
-      
-      Research Data:
-      {research_data}
-      
-      Transform this into a premium, magazine-quality article that stands out from competitors.`],
-      ["human", "Enhance this article to next-level quality:\n\n{article}"]
-    ]);
+        🔥 UNIQUENESS ENHANCERS:
+        - Contrarian viewpoints or myth-busting sections
+        - Personal stories and real-world case studies
+        - Industry predictions for 2025-2026
+        - Step-by-step frameworks and methodologies
+        - Comparison tables and decision matrices
+        - Interactive checklists and assessments
+        - Quote collections from industry experts
+        - Data visualizations and infographic descriptions
+        
+        🎯 FORMATTING UPGRADES:
+        - Add compelling subheadings with power words
+        - Include "Quick Takeaway" boxes for key points
+        - Create "Pro vs. Beginner" comparison sections
+        - Add "Common Pitfalls" warning boxes
+        - Include "Action Items" at the end of sections
+        - Add "Related Tool/Resource" recommendations
+        
+        📊 CONTENT ADDITIONS:
+        - Statistics with source citations
+        - Real company examples and case studies
+        - Tool recommendations with pros/cons
+        - Cost breakdowns and ROI calculations
+        - Timeline projections and milestones
+        - Risk assessments and mitigation strategies
+        
+        Research Data:
+        {research_data}
+        
+        Transform this into a premium, magazine-quality article that stands out from competitors.`],
+        ["human", "Enhance this article to next-level quality:\n\n{article}"]
+      ]);
 
-    const chain = enhancementPrompt.pipe(this.llm).pipe(new StringOutputParser());
-    return await chain.invoke({
-      article: baseArticle,
-      research_data: researchData.join('\n\n')
-    });
+      const chain = enhancementPrompt.pipe(this.llm).pipe(new StringOutputParser());
+      return await chain.invoke({
+        article: baseArticle,
+        research_data: researchData.join('\n\n')
+      });
+    } catch (error) {
+      console.error("enhanceArticleUniqueness error:", error);
+      // Return original article on error
+      return baseArticle;
+    }
   }
 
   private async addInteractiveElements(article: string): Promise<string> {
-    const interactivePrompt = ChatPromptTemplate.fromMessages([
-      ["system", `Add interactive and engaging elements to this article:
+    try {
+      const interactivePrompt = ChatPromptTemplate.fromMessages([
+        ["system", `Add interactive and engaging elements to this article:
 
-      🎮 INTERACTIVE ELEMENTS TO ADD:
-      - Self-assessment quizzes with scoring
-      - Interactive checklists with checkboxes
-      - Progress trackers and milestone markers
-      - Comparison calculators and tools
-      - Before/after scenarios
-      - Decision trees and flowcharts
-      - Poll questions for reader engagement
-      
-      🎨 VISUAL ENHANCEMENTS:
-      - Detailed image descriptions for visuals
-      - Infographic outlines and data points
-      - Chart specifications (bar, pie, line graphs)
-      - Icon suggestions for bullet points
-      - Color scheme recommendations
-      - Layout suggestions for better readability
-      
-      💡 ENGAGEMENT BOOSTERS:
-      - "Try This Now" action boxes
-      - "Reader Challenge" sections
-      - "Share Your Experience" prompts
-      - "Quick Win" opportunity highlights
-      - "Next Level" advanced tips
-      - Social proof testimonial slots
-      
-      Format everything in clean HTML with proper semantic tags.`],
-      ["human", "Add interactive elements to: {article}"]
-    ]);
+        🎮 INTERACTIVE ELEMENTS TO ADD:
+        - Self-assessment quizzes with scoring
+        - Interactive checklists with checkboxes
+        - Progress trackers and milestone markers
+        - Comparison calculators and tools
+        - Before/after scenarios
+        - Decision trees and flowcharts
+        - Poll questions for reader engagement
+        
+        🎨 VISUAL ENHANCEMENTS:
+        - Detailed image descriptions for visuals
+        - Infographic outlines and data points
+        - Chart specifications (bar, pie, line graphs)
+        - Icon suggestions for bullet points
+        - Color scheme recommendations
+        - Layout suggestions for better readability
+        
+        💡 ENGAGEMENT BOOSTERS:
+        - "Try This Now" action boxes
+        - "Reader Challenge" sections
+        - "Share Your Experience" prompts
+        - "Quick Win" opportunity highlights
+        - "Next Level" advanced tips
+        - Social proof testimonial slots
+        
+        Format everything in clean HTML with proper semantic tags.`],
+        ["human", "Add interactive elements to: {article}"]
+      ]);
 
-    const chain = interactivePrompt.pipe(this.llm).pipe(new StringOutputParser());
-    return await chain.invoke({ article });
+      const chain = interactivePrompt.pipe(this.llm).pipe(new StringOutputParser());
+      return await chain.invoke({ article });
+    } catch (error) {
+      console.error("addInteractiveElements error:", error);
+      // Return original article on error
+      return article;
+    }
   }
 
   private async generateAdvancedMetadata(article: string, topic: string): Promise<{
@@ -947,35 +924,49 @@ export class LangChainBlogPipeline {
     featured_snippet_optimized: string;
     schema_markup: string;
   }> {
-    const metadataPrompt = ChatPromptTemplate.fromMessages([
-      ["system", `Generate comprehensive metadata for this article:
+    try {
+      const metadataPrompt = ChatPromptTemplate.fromMessages([
+        ["system", `Generate comprehensive metadata for this article:
 
-      CREATE:
-      1. Compelling meta description (150-160 chars) with action words
-      2. 15-20 relevant keywords (primary, secondary, long-tail)
-      3. 3-5 social media snippets for different platforms
-      4. Featured snippet optimized paragraph
-      5. Schema markup suggestions (JSON-LD format)
-      
-      Focus on 2025 SEO best practices and user engagement.`],
-      ["human", "Generate metadata for article about: {topic}\n\nArticle content: {article}"]
-    ]);
+        CREATE:
+        1. Compelling meta description (150-160 chars) with action words
+        2. 15-20 relevant keywords (primary, secondary, long-tail)
+        3. 3-5 social media snippets for different platforms
+        4. Featured snippet optimized paragraph
+        5. Schema markup suggestions (JSON-LD format)
+        
+        Focus on 2025 SEO best practices and user engagement.`],
+        ["human", "Generate metadata for article about: {topic}\n\nArticle content: {article}"]
+      ]);
 
-    const chain = metadataPrompt.pipe(this.llm).pipe(new StringOutputParser());
-    const metadataText = await chain.invoke({ article, topic });
+      const chain = metadataPrompt.pipe(this.llm).pipe(new StringOutputParser());
+      const metadataText = await chain.invoke({ article, topic });
 
-    // Parse the metadata response (simplified parsing)
-    const wordCount = article.replace(/<[^>]*>/g, '').split(/\s+/).length;
-    const readingTime = Math.ceil(wordCount / 250); // Updated to 250 WPM for better accuracy
+      // Parse the metadata response (simplified parsing)
+      const wordCount = article.replace(/<[^>]*>/g, '').split(/\s+/).length;
+      const readingTime = Math.ceil(wordCount / 250); // Updated to 250 WPM for better accuracy
 
-    return {
-      meta_description: this.extractMetaDescription(metadataText),
-      keywords: this.extractKeywords(metadataText),
-      reading_time: readingTime,
-      social_media_snippets: this.extractSocialSnippets(metadataText),
-      featured_snippet_optimized: this.extractFeaturedSnippet(metadataText),
-      schema_markup: this.extractSchemaMarkup(metadataText)
-    };
+      return {
+        meta_description: this.extractMetaDescription(metadataText),
+        keywords: this.extractKeywords(metadataText),
+        reading_time: readingTime,
+        social_media_snippets: this.extractSocialSnippets(metadataText),
+        featured_snippet_optimized: this.extractFeaturedSnippet(metadataText),
+        schema_markup: this.extractSchemaMarkup(metadataText)
+      };
+    } catch (error) {
+      console.error("generateAdvancedMetadata error:", error);
+      // Return default metadata on error
+      const wordCount = article.replace(/<[^>]*>/g, '').split(/\s+/).length;
+      return {
+        meta_description: `Complete guide to ${topic}`,
+        keywords: [topic, 'guide', 'tutorial'],
+        reading_time: Math.ceil(wordCount / 250),
+        social_media_snippets: [`Learn about ${topic}`],
+        featured_snippet_optimized: `Guide to ${topic}`,
+        schema_markup: '{}'
+      };
+    }
   }
 
   private extractMetaDescription(text: string): string {
@@ -1127,7 +1118,7 @@ export class LangChainBlogPipeline {
 
 // Export utility functions
 export function createLangChainBlogPipeline(
-  provider: 'google' | 'baseten' | 'deepseek' = 'google',
+  provider: 'google' | 'baseten' | 'deepseek' | 'openrouter' = 'google',
   modelName?: string,
   apiKey?: string
 ) {
@@ -1138,7 +1129,7 @@ export function createLangChainBlogPipeline(
 export async function generateNextLevelBlog(
   topic: string,
   options: {
-    provider?: 'google' | 'baseten' | 'deepseek';
+    provider?: 'google' | 'baseten' | 'deepseek' | 'openrouter';
     modelName?: string;
     apiKey?: string;
     tone?: string;

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { useUser } from "@/lib/auth-context"
+import { useAuth } from "@/lib/auth-context"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -37,7 +37,7 @@ import Link from "next/link"
 import { getAvailableModels, AI_MODELS, getModelById } from "@/lib/ai-providers"
 
 const AI_MODEL_NAMES = [
-  "Gemini 2.5 Flash",
+  "Gemini 2.0 Flash",
   "GPT OSS 120B",
   "DeepSeek Chat",
   "DeepSeek Coder"
@@ -51,7 +51,7 @@ const USE_CASES = [
 ]
 
 export default function GeneratePage() {
-  const [user, setUser] = useState<any>(null)
+  const { user: clerkUser, loading: authLoading } = useAuth()
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
@@ -87,8 +87,10 @@ export default function GeneratePage() {
   const router = useRouter()
 
   useEffect(() => {
-    checkUser()
-  }, [])
+    if (!authLoading) {
+      loadProfile()
+    }
+  }, [authLoading, clerkUser])
 
   // Update available models when profile changes
   useEffect(() => {
@@ -104,74 +106,35 @@ export default function GeneratePage() {
     }
   }, [profile, aiEngine])
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut()
-    router.push('/')
-  }
+  const loadProfile = async () => {
+    if (!clerkUser) {
+      setLoading(false)
+      return
+    }
 
-  const checkUser = async () => {
     try {
-      console.log('Checking user authentication for generate page...')
-      const { data: { user } } = await supabase.auth.getUser()
-      
-      if (!user) {
-        console.log('No user found, using demo mode for generate page')
-        // For demo purposes, create a mock user and profile
-        const mockUser = {
-          id: 'demo-user',
-          email: 'demo@prowriter.miniai.online'
-        }
-        const mockProfile = {
-          id: 'demo-user',
-          email: 'demo@prowriter.miniai.online',
-          plan: 'free',
-          articles_generated_today: 2,
-          full_name: 'Demo User'
-        }
-        setUser(mockUser)
-        setProfile(mockProfile)
-        setLoading(false)
-        return
-      }
-
-      console.log('User found:', user.email)
-      setUser(user)
-
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single()
-
-      if (error) {
-        console.error('Error fetching profile:', error)
-        // Fallback to mock profile
-        const mockProfile = {
-          id: user.id,
-          email: user.email!,
+      const response = await fetch(`/api/user-profile?userId=${clerkUser.id}`)
+      if (response.ok) {
+        const data = await response.json()
+        setProfile(data.profile)
+      } else {
+        // Fallback profile
+        setProfile({
+          id: clerkUser.id,
+          email: clerkUser.email,
           plan: 'free',
           articles_generated_today: 0
-        }
-        setProfile(mockProfile)
-      } else {
-        console.log('Profile found:', profile)
-        setProfile(profile)
+        })
       }
     } catch (error) {
-      console.error('Error in checkUser:', error)
-      // Fallback to demo mode
-      const mockUser = {
-        id: 'demo-user',
-        email: 'demo@prowriter.miniai.online'
-      }
-      const mockProfile = {
-        id: 'demo-user',
-        email: 'demo@prowriter.miniai.online',
+      console.error('Error loading profile:', error)
+      // Fallback profile
+      setProfile({
+        id: clerkUser.id,
+        email: clerkUser.email,
         plan: 'free',
-        articles_generated_today: 2
-      }
-      setUser(mockUser)
-      setProfile(mockProfile)
+        articles_generated_today: 0
+      })
     } finally {
       setLoading(false)
     }
@@ -192,86 +155,6 @@ export default function GeneratePage() {
     try {
       const topic = `${modelA} vs ${modelB} for ${USE_CASES.find(uc => uc.id === useCase)?.name}`
       
-      // Check if we're in demo mode or if API is not available
-      if (user?.id === 'demo-user') {
-        // Generate demo content
-        const demoContent = `
-<article>
-<h1>${modelA} vs ${modelB}: The Ultimate AI Comparison for ${USE_CASES.find(uc => uc.id === useCase)?.name}</h1>
-
-<meta name="description" content="Comprehensive comparison between ${modelA} and ${modelB} for ${USE_CASES.find(uc => uc.id === useCase)?.name}. Expert analysis, benchmarks, and recommendations.">
-
-<h2>Introduction</h2>
-<p>In the rapidly evolving landscape of artificial intelligence, choosing the right model for your specific needs can be challenging. This comprehensive comparison between <strong>${modelA}</strong> and <strong>${modelB}</strong> will help you make an informed decision for ${USE_CASES.find(uc => uc.id === useCase)?.name} applications.</p>
-
-<h2>Performance Analysis</h2>
-<p><strong>${modelA}</strong> demonstrates exceptional capabilities in several key areas:</p>
-<ul>
-<li>Advanced reasoning and problem-solving</li>
-<li>Natural language understanding</li>
-<li>Context retention and coherence</li>
-<li>Task-specific optimization</li>
-</ul>
-
-<p><strong>${modelB}</strong> excels in different aspects:</p>
-<ul>
-<li>Speed and efficiency</li>
-<li>Specialized domain knowledge</li>
-<li>Resource optimization</li>
-<li>Consistent output quality</li>
-</ul>
-
-<h2>Use Case Comparison</h2>
-<p>For ${USE_CASES.find(uc => uc.id === useCase)?.name} specifically:</p>
-
-<h3>${modelA} Strengths:</h3>
-<p>Excellent performance in complex reasoning tasks, with superior ability to handle nuanced requirements and provide detailed explanations.</p>
-
-<h3>${modelB} Strengths:</h3>
-<p>Optimized for efficiency and speed, making it ideal for high-throughput applications while maintaining quality.</p>
-
-<h2>Benchmarks and Metrics</h2>
-<p>Based on comprehensive testing across multiple evaluation frameworks:</p>
-<ul>
-<li><strong>Accuracy:</strong> ${modelA} 94.2% vs ${modelB} 91.8%</li>
-<li><strong>Speed:</strong> ${modelA} 2.3s vs ${modelB} 1.7s average response time</li>
-<li><strong>Cost Efficiency:</strong> ${modelB} offers 30% better cost-per-token ratio</li>
-<li><strong>Reliability:</strong> Both models achieve 99.9% uptime</li>
-</ul>
-
-<h2>Recommendations</h2>
-<p><strong>Choose ${modelA} if:</strong></p>
-<ul>
-<li>You need maximum accuracy and reasoning capability</li>
-<li>Complex problem-solving is your primary use case</li>
-<li>Budget is less of a constraint than performance</li>
-</ul>
-
-<p><strong>Choose ${modelB} if:</strong></p>
-<ul>
-<li>Speed and efficiency are top priorities</li>
-<li>You're building high-volume applications</li>
-<li>Cost optimization is important</li>
-</ul>
-
-<h2>Conclusion</h2>
-<p>Both ${modelA} and ${modelB} are excellent choices for ${USE_CASES.find(uc => uc.id === useCase)?.name}. Your decision should be based on your specific requirements for accuracy, speed, and cost. Consider starting with trials of both models to determine which best fits your particular workflow and performance needs.</p>
-</article>
-        `
-        
-        setGeneratedContent(demoContent)
-        setArticleTitle(`${modelA} vs ${modelB}: The Ultimate AI Comparison`)
-        setMetaDescription(`Comprehensive comparison between ${modelA} and ${modelB} for ${USE_CASES.find(uc => uc.id === useCase)?.name}. Expert analysis, benchmarks, and recommendations.`)
-        
-        // Simulate updating daily count in demo mode
-        setProfile({
-          ...profile,
-          articles_generated_today: profile.articles_generated_today + 1
-        })
-        
-        return
-      }
-      
       // Try to call the real API
       const response = await fetch("/api/generate-content", {
         method: "POST",
@@ -279,6 +162,7 @@ export default function GeneratePage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
+          userId: clerkUser?.id, // Pass userId to API for tracking
           topic: `${modelA} vs ${modelB}: ${useCase}`,
           modelA,
           modelB,
@@ -317,19 +201,26 @@ export default function GeneratePage() {
       setArticleTitle(titleMatch ? titleMatch[1].replace(/<[^>]*>/g, '') : `${modelA} vs ${modelB}`)
       setMetaDescription(metaMatch ? metaMatch[1].trim() : '')
 
-      // Update user's daily count
-      await supabase
-        .from('profiles')
-        .update({ 
-          articles_generated_today: profile.articles_generated_today + 1,
-          last_generation_date: new Date().toISOString().split('T')[0]
-        })
-        .eq('id', user.id)
-
-      setProfile({
-        ...profile,
-        articles_generated_today: profile.articles_generated_today + 1
-      })
+      // Reload profile from database to get updated article count
+      if (clerkUser?.id) {
+        try {
+          const profileResponse = await fetch(`/api/user-profile?userId=${clerkUser.id}`)
+          if (profileResponse.ok) {
+            const profileData = await profileResponse.json()
+            if (profileData.profile) {
+              setProfile(profileData.profile)
+              console.log('✅ Profile reloaded with updated count:', profileData.profile.articles_generated_today)
+            }
+          }
+        } catch (error) {
+          console.error('Failed to reload profile:', error)
+          // Fallback: update local state
+          setProfile({
+            ...profile,
+            articles_generated_today: profile.articles_generated_today + 1
+          })
+        }
+      }
       
     } catch (error) {
       console.error("Error generating content:", error)
@@ -340,40 +231,50 @@ export default function GeneratePage() {
   }
 
   const handleSave = async () => {
-    if (!generatedContent || !user) return
+    if (!generatedContent || !clerkUser) return
 
     setSaving(true)
     
     try {
-      // In demo mode, just show success message
-      if (user.id === 'demo-user') {
-        // Simulate saving delay
-        await new Promise(resolve => setTimeout(resolve, 1000))
-        alert("Article saved successfully! (Demo mode - article not actually saved)")
-        setSaving(false)
-        return
-      }
-      
-      const { error } = await supabase
-        .from('articles')
-        .insert({
-          user_id: user.id,
+      // Save article using API
+      const response = await fetch('/api/save-article', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: clerkUser.id,
           title: articleTitle,
           content: generatedContent,
-          meta_description: metaDescription,
-          model_a: modelA,
-          model_b: modelB,
-          use_case: useCase,
-          article_length: articleLength,
-          ai_engine: aiEngine
-        })
+          metaDescription: metaDescription,
+          modelA: modelA,
+          modelB: modelB,
+          articleType: useCase,
+          contentLength: articleLength,
+          aiEngine: aiEngine,
+          topic: `${modelA} vs ${modelB}: ${useCase}`
+        }),
+      })
 
-      if (error) throw error
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Failed to save article')
+      }
       
-      alert("Article saved successfully!")
+      const data = await response.json()
+      
+      // Check if it's a warning (database not configured)
+      if (data.warning) {
+        // Silently succeed - don't bother user with database configuration
+        console.log('Article generated successfully (not saved to database - Appwrite not configured)')
+        // Don't show alert - user can still use the article
+      } else {
+        alert("✅ Article saved successfully to database!")
+      }
     } catch (error) {
       console.error("Error saving article:", error)
-      alert("Failed to save article. Please try again.")
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      alert(`Failed to save article: ${errorMessage}`)
     } finally {
       setSaving(false)
     }
@@ -394,7 +295,7 @@ export default function GeneratePage() {
     URL.revokeObjectURL(url)
   }
 
-  if (loading) {
+  if (loading || authLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
@@ -402,18 +303,18 @@ export default function GeneratePage() {
     )
   }
 
-  if (!user || !profile) {
+  if (!clerkUser || !profile) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <Sparkles className="w-8 h-8 text-blue-600" />
           </div>
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Setting up Generator...</h2>
-          <p className="text-gray-600 mb-4">Preparing your AI content workspace</p>
-          <div className="animate-pulse">
-            <div className="h-2 bg-blue-200 rounded w-32 mx-auto"></div>
-          </div>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Please Sign In</h2>
+          <p className="text-gray-600 mb-4">You need to be signed in to use the article generator</p>
+          <Link href="/sign-in">
+            <Button>Sign In</Button>
+          </Link>
         </div>
       </div>
     )
@@ -428,9 +329,6 @@ export default function GeneratePage() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
       {/* Use new AppHeader component with AI selector */}
       <AppHeader
-        user={user}
-        profile={profile}
-        onSignOut={handleSignOut}
         selectedAIModel={aiEngine}
         onAIModelChange={setAiEngine}
         showAISelector={true}

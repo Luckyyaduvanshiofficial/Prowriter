@@ -1,6 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createProviderClient, getModelById } from "@/lib/ai-providers"
 import { createWebResearcher, type WebSearchOptions } from "@/lib/web-search"
+import { sanitizeHTML, getWordCount, getReadingTime } from "@/lib/html-sanitizer"
+import { getUserProfile, updateUserProfile } from "@/lib/auth"
 
 const MASTER_PROMPT = `You are an elite content strategist, SEO expert, and professional blog writer specializing in creating exceptional, high-value content that dominates search rankings and engages readers.
 
@@ -252,6 +254,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const { 
+      userId,
       topic, 
       modelA, 
       modelB, 
@@ -272,6 +275,32 @@ export async function POST(request: NextRequest) {
 
     if (!topic) {
       return NextResponse.json({ error: "Topic is required" }, { status: 400 })
+    }
+
+    // Increment user's article count in database
+    if (userId) {
+      try {
+        const userProfile = await getUserProfile(userId);
+        if (userProfile) {
+          const today = new Date().toISOString().split('T')[0];
+          const lastGenDate = userProfile.lastGenerationDate?.split('T')[0];
+          
+          // Reset count if it's a new day
+          const newCount = (lastGenDate === today) 
+            ? (userProfile.articlesGeneratedToday || 0) + 1 
+            : 1;
+          
+          await updateUserProfile(userId, {
+            articlesGeneratedToday: newCount,
+            lastGenerationDate: new Date().toISOString()
+          });
+          
+          console.log(`✅ Updated article count for user ${userId}: ${newCount}`);
+        }
+      } catch (error) {
+        console.error('Failed to update user article count:', error);
+        // Continue with generation even if count update fails
+      }
     }
 
     // Get the AI model
@@ -778,8 +807,11 @@ Use proper HTML formatting throughout with semantic structure and engaging conte
       maxTokens: maxTokensMap[articleLength] || 4000
     })
 
+    // CRITICAL: Sanitize the generated content to remove ALL markdown artifacts
+    const sanitizedContent = sanitizeHTML(response.content)
+
     return NextResponse.json({
-      content: response.content,
+      content: sanitizedContent,
       metadata: {
         topic,
         modelA,
@@ -806,7 +838,10 @@ Use proper HTML formatting throughout with semantic structure and engaging conte
           contentScraped: webResearchData.scrapedContent.length
         } : null,
         generatedAt: new Date().toISOString(),
-        usage: response.usage
+        usage: response.usage,
+        // Add stats from sanitized content
+        wordCount: getWordCount(sanitizedContent),
+        readingTime: getReadingTime(sanitizedContent)
       },
     })
   } catch (error) {
