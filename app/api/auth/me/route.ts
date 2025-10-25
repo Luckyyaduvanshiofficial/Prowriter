@@ -1,23 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getCurrentUser, getUserProfile } from '@/lib/auth'
+import { getUserProfile } from '@/lib/auth'
 
 export async function GET(request: NextRequest) {
   try {
-    const user = await getCurrentUser()
+    // Get userId from query parameters
+    const { searchParams } = new URL(request.url)
+    const userId = searchParams.get('userId')
 
-    if (!user) {
+    if (!userId) {
       return NextResponse.json(
-        { error: 'Not authenticated' },
-        { status: 401 }
+        { error: 'User ID required' },
+        { status: 400 }
       )
     }
 
     // Get user profile from database
-    const profile = await getUserProfile(user.id)
+    const profile = await getUserProfile(userId)
+
+    if (!profile) {
+      return NextResponse.json(
+        { error: 'Profile not found' },
+        { status: 404 }
+      )
+    }
 
     return NextResponse.json({
       user: {
-        ...user,
+        id: userId,
+        email: profile.email,
+        name: profile.name,
         profile
       },
       success: true

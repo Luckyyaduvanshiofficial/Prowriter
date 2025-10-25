@@ -28,14 +28,14 @@ export class LangChainBlogPipeline {
   private graph: any;
 
   constructor(
-    provider: 'openai' | 'google' | 'baseten' = 'baseten',
+    provider: 'google' | 'baseten' | 'deepseek' = 'google',
     modelName?: string,
     apiKey?: string
   ) {
     // Initialize the LLM based on provider
     if (provider === 'google') {
       this.llm = new ChatGoogleGenerativeAI({
-        modelName: modelName || "gemini-2.0-flash",
+        modelName: modelName || "gemini-2.5-flash-exp",
         apiKey: apiKey || process.env.GOOGLE_AI_API_KEY,
         temperature: 0.7,
         maxOutputTokens: 4096,
@@ -52,21 +52,29 @@ export class LangChainBlogPipeline {
           },
         },
         temperature: 1,
-        maxTokens: 1000,
+        maxTokens: 4096,
       });
-    } else {
+    } else if (provider === 'deepseek') {
+      // Use OpenAI-compatible interface for DeepSeek
       this.llm = new ChatOpenAI({
-        modelName: modelName || "gpt-4o-mini",
-        openAIApiKey: apiKey || process.env.OPENROUTER_API_KEY,
+        modelName: modelName || "deepseek-chat",
+        openAIApiKey: apiKey || process.env.DEEPSEEK_API_KEY,
         configuration: {
-          baseURL: "https://openrouter.ai/api/v1",
+          baseURL: "https://api.deepseek.com/v1",
           defaultHeaders: {
-            "HTTP-Referer": "https://prowriter.miniai.online",
-            "X-Title": "Prowriter AI",
+            "Content-Type": "application/json",
           },
         },
         temperature: 0.7,
-        maxTokens: 4096,
+        maxTokens: 8192,
+      });
+    } else {
+      // Default to Google Gemini
+      this.llm = new ChatGoogleGenerativeAI({
+        modelName: "gemini-2.5-flash-exp",
+        apiKey: process.env.GOOGLE_AI_API_KEY,
+        temperature: 0.7,
+        maxOutputTokens: 4096,
       });
     }
 
@@ -82,16 +90,46 @@ export class LangChainBlogPipeline {
       
       try {
         const researchPrompt = ChatPromptTemplate.fromMessages([
-          ["system", `You are an expert researcher. Generate 5-7 specific search queries to thoroughly research the topic: {topic}.
+          ["system", `You are an elite research analyst with expertise in comprehensive topic investigation. Generate 5-7 highly specific, strategic search queries to thoroughly research the topic.
           
-          Focus on:
-          - Current trends and statistics
-          - Expert opinions and case studies  
-          - Technical details and best practices
-          - Real-world applications and examples
-          - Market analysis and future predictions
+          RESEARCH STRATEGY:
+          📊 Data & Statistics:
+          - Current industry statistics and market data (2024-2025)
+          - Benchmark comparisons and performance metrics
+          - Growth trends and future projections
           
-          Return only the search queries, one per line.`],
+          🎓 Expert Insights:
+          - Industry expert opinions and thought leadership
+          - Academic research and white papers
+          - Case studies and success stories
+          - Best practices from top performers
+          
+          🔧 Technical Details:
+          - Implementation guides and technical specifications
+          - Common challenges and proven solutions
+          - Tools, frameworks, and methodologies
+          - Step-by-step processes and workflows
+          
+          🌍 Real-World Applications:
+          - Practical use cases across industries
+          - Success metrics and ROI examples
+          - Before/after comparisons
+          - User testimonials and reviews
+          
+          📈 Market Intelligence:
+          - Competitor analysis and positioning
+          - Future trends and predictions
+          - Industry disruptions and innovations
+          - Regulatory changes and compliance
+          
+          QUERY QUALITY STANDARDS:
+          - Use long-tail keywords for specific results
+          - Include year "2024" or "2025" for recent content
+          - Add qualifiers like "expert", "guide", "comparison", "statistics"
+          - Target different search intents (informational, commercial, navigational)
+          - Focus on authoritative sources (research, industry leaders, case studies)
+          
+          Return ONLY the search queries, one per line. No explanations, just queries.`],
           ["human", "Topic: {topic}"]
         ]);
 
@@ -137,40 +175,76 @@ export class LangChainBlogPipeline {
       
       try {
         const outlinePrompt = ChatPromptTemplate.fromMessages([
-          ["system", `You are an expert content strategist and professional blog writer. Create a detailed, SEO-optimized blog post outline that stands out from generic content.
+          ["system", `You are an elite content strategist and SEO architect. Create a detailed, battle-tested blog post outline that dominates search rankings and captivates readers.
 
-          ADVANCED REQUIREMENTS:
-          - Create a magnetic, clickable title with power words and emotional triggers
-          - Use strategic HTML heading tags (h1, h2, h3, h4) with proper hierarchy
-          - Design 6-10 main sections with compelling subsections
-          - Include hook-driven introductions and strong conclusions
-          - Add strategic call-to-action placements
-          - Include interactive elements suggestions (polls, quizzes, tables)
-          - Plan for visual content placement (infographics, charts, images)
-          - Add estimated word counts and reading flow
-          - Create engaging meta description with action words (150-160 chars)
-          - Suggest long-tail and semantic keywords for modern SEO
-          - Include FAQ section with voice search optimization
-          - Plan for featured snippets optimization
+          🎯 ADVANCED OUTLINE REQUIREMENTS (2025 STANDARDS):
           
-          CONTENT DIFFERENTIATION STRATEGY:
+          📋 TITLE MASTERY:
+          - Create a magnetic, click-worthy title with emotional triggers
+          - Include power words: "Ultimate", "Complete", "Proven", "Expert", "2025"
+          - Integrate primary keyword naturally
+          - Optimize length: 50-60 characters for SEO
+          - Add benefit or transformation promise
+          
+          🏗️ STRUCTURE EXCELLENCE:
+          - Use strategic HTML heading tags (h1, h2, h3, h4) with proper hierarchy
+          - Design 6-12 main sections that flow logically
+          - Include compelling subsections that dive deep
+          - Add hook-driven introduction (question, stat, or bold statement)
+          - Create strong conclusion with clear next steps
+          - Plan strategic call-to-action placements
+          
+          💎 CONTENT DIFFERENTIATION:
           - Unique angles and fresh perspectives on the topic
+          - Original research findings or data analysis
           - Personal stories, case studies, and real examples
-          - Data-driven insights and statistics
-          - Contrarian viewpoints when appropriate
+          - Data-driven insights with specific metrics
+          - Contrarian viewpoints when appropriate (backed by evidence)
           - Step-by-step actionable frameworks
           - Expert quotes and industry insights
-          - Future predictions and trends
+          - Future predictions and emerging trends
+          
+          🎨 ENGAGEMENT ELEMENTS:
+          - Interactive element suggestions (polls, quizzes, calculators, tables)
+          - Visual content placement (infographics, charts, comparison tables, screenshots)
+          - "Pro Tip" and "Quick Win" callout boxes
+          - "Common Mistakes" warning sections
+          - FAQ section with voice search optimization
+          - Social proof integration points (stats, testimonials, case studies)
+          - Pattern interrupts every 300-400 words
+          
+          📊 WORD COUNT & PACING:
+          - Add estimated word counts per section
+          - Plan reading flow with varied section lengths
+          - Include strategic content breaks
+          - Total article reading time estimate
+          
+          🔍 SEO OPTIMIZATION STRATEGY:
+          - Create engaging meta description with action words (150-160 chars)
+          - Suggest primary keyword + 3-5 secondary keywords
+          - Include long-tail keyword opportunities
+          - Plan for featured snippets optimization (definitions, lists, tables, steps)
+          - Voice search question format integration
+          - Internal linking opportunities with anchor text
+          - Schema markup suggestions (Article, FAQ, HowTo)
+          - E-E-A-T signal placement (expertise, experience, authority, trust)
+          
+          🎯 SEARCH INTENT ALIGNMENT:
+          - Match outline to user search intent
+          - Address "People Also Ask" questions
+          - Cover related searches comprehensively
+          - Include comparison sections if relevant
+          - Add troubleshooting/FAQ for problem-solving intent
           
           TONE: {tone}
           LENGTH TARGET: {length}
           CURRENT YEAR: 2025
           
-          Research Data:
+          Research Data Available:
           {research_data}
           
-          Format as structured HTML outline with rich content planning.`],
-          ["human", "Create a next-level, unique outline for: {topic}"]
+          Format as structured HTML outline with detailed content planning guidance that any skilled writer can follow to create exceptional, ranking content.`],
+          ["human", "Create a next-level, comprehensive outline for: {topic}"]
         ]);
 
         const outlineChain = outlinePrompt.pipe(this.llm).pipe(new StringOutputParser());
@@ -210,49 +284,69 @@ export class LangChainBlogPipeline {
           const sectionTitle = match[1].replace(/<[^>]*>/g, '').trim();
           
           const sectionPrompt = ChatPromptTemplate.fromMessages([
-            ["system", `You are a master blog writer who creates engaging, professional content that stands out. Write a comprehensive section that's both informative and captivating.
+            ["system", `You are a master content creator who writes engaging, professional content that captivates readers and ranks #1 on Google. Write a comprehensive section that's both informative and irresistibly engaging.
 
             SECTION TO WRITE: {section_title}
             TOPIC CONTEXT: {topic}
             TONE: {tone}
-            YEAR: 2025
+            CURRENT YEAR: 2025
             
-            ADVANCED WRITING REQUIREMENTS:
-            ✅ STRUCTURE & FORMATTING:
-            - Use semantic HTML5 tags for better accessibility
+            🎯 ADVANCED SECTION WRITING FRAMEWORK:
+            
+            ✅ STRUCTURE & FORMATTING MASTERY:
+            - Use semantic HTML5 tags for accessibility and SEO
             - Include proper heading hierarchy (h3, h4 for subsections)
             - Create scannable content with bullet points and numbered lists
-            - Add relevant tables, code blocks, or structured data
-            - Include call-out boxes with <blockquote> for key insights
-            - Use <mark> tags for highlighting important concepts
+            - Add relevant tables, comparison charts, or code blocks
+            - Include styled <blockquote> for key insights and expert quotes
+            - Use <mark> or <strong> tags for highlighting critical concepts
+            - Add visual breaks every 200-300 words for better readability
             
-            ✅ CONTENT EXCELLENCE:
-            - Start with a compelling hook or surprising statistic
-            - Include real-world examples and case studies
-            - Add actionable tips and step-by-step guides
-            - Incorporate relevant data, stats, and research findings
-            - Include expert quotes or industry insights
-            - End with a mini-conclusion and transition to next section
+            ✅ CONTENT EXCELLENCE STANDARDS:
+            - START: Hook with compelling question, surprising statistic, or bold statement
+            - DEVELOP: Include 2-3 real-world examples or case studies
+            - GUIDE: Add actionable tips and step-by-step instructions
+            - SUPPORT: Incorporate data, statistics, and research findings
+            - VALIDATE: Include expert quotes or industry insights
+            - CLOSE: Mini-conclusion with key takeaway and smooth transition
             
-            ✅ ENGAGEMENT FEATURES:
-            - Add interactive elements like checklists
-            - Include "Pro Tips" and "Common Mistakes" callouts
-            - Create comparison tables when relevant
-            - Add FAQ-style Q&A within sections
-            - Include relevant emojis for visual appeal (sparingly)
+            ✅ ENGAGEMENT AMPLIFICATION:
+            - Add interactive elements like checklists and worksheets
+            - Include "Pro Tip 💡" and "Common Mistake ⚠️" callouts
+            - Create comparison tables for different approaches/tools
+            - Add FAQ-style Q&A within sections when relevant
+            - Include relevant emojis strategically (not overused)
+            - Use bucket brigades: "Here's the truth:", "But wait...", "The bottom line:"
+            - Add pattern interrupts (questions, bold statements, surprising facts)
             
-            ✅ SEO & READABILITY:
-            - Use semantic keywords naturally
-            - Vary sentence length and structure
-            - Include internal linking opportunities
-            - Add schema markup suggestions in comments
-            - Optimize for featured snippets
+            ✅ SEO & READABILITY OPTIMIZATION:
+            - Integrate semantic keywords naturally (no keyword stuffing)
+            - Vary sentence length: mix short (5-10 words) and medium (15-20 words)
+            - Include internal linking opportunities with descriptive anchor text
+            - Add schema markup suggestions in HTML comments
+            - Optimize for featured snippets (use "What is", "How to", "Why" formats)
+            - Use transition words for better flow (However, Therefore, Moreover, Additionally)
+            
+            ✅ VALUE DELIVERY FRAMEWORK:
+            - Make every sentence count - remove fluff and filler words
+            - Provide specific, actionable advice (not generic platitudes)
+            - Include quantifiable metrics and benchmarks
+            - Share insider tips and lesser-known strategies
+            - Address common objections and concerns
+            - Give readers something they can implement immediately
+            
+            ✅ STORYTELLING ELEMENTS:
+            - Use mini-stories or anecdotes to illustrate points
+            - Include before/after scenarios
+            - Add relatable examples from everyday life
+            - Use analogies and metaphors for complex concepts
+            - Create emotional connection with reader's pain points
             
             Research Data Available:
             {research_data}
             
-            Return professionally formatted HTML content that's engaging and valuable.`],
-            ["human", "Write an exceptional section: {section_title}"]
+            Return professionally formatted HTML content that's engaging, valuable, and optimized for both search engines and human readers. Make it so good that readers want to bookmark, share, and implement immediately.`],
+            ["human", "Write an exceptional, engaging section: {section_title}"]
           ]);
 
           const sectionChain = sectionPrompt.pipe(this.llm).pipe(new StringOutputParser());
@@ -287,52 +381,135 @@ export class LangChainBlogPipeline {
       
       try {
         const polishPrompt = ChatPromptTemplate.fromMessages([
-          ["system", `You are an expert editor, SEO specialist, and content strategist. Create a magazine-quality, next-level blog article that stands out in 2025.
+          ["system", `You are an elite editor, SEO specialist, and content strategist. Transform the provided content into a magazine-quality, next-level blog article that dominates 2025 search rankings and captivates readers.
 
-          MASTER CONTENT ASSEMBLY TASKS:
+          🎯 MASTER CONTENT ASSEMBLY & POLISH FRAMEWORK:
           
-          🎯 ARTICLE STRUCTURE:
-          1. Eye-catching title with power words and emotional triggers
-          2. Compelling meta description with action words
-          3. Hook-driven introduction with a story, statistic, or question
-          4. Table of contents for easy navigation
-          5. Well-structured body with proper heading hierarchy
-          6. Strategic call-to-action placements throughout
-          7. Comprehensive conclusion with clear next steps
-          8. Author bio section with expertise highlights
-          9. FAQ section optimized for voice search
-          10. Related articles suggestions
+          📝 ARTICLE STRUCTURE PERFECTION:
+          1. **Title Mastery**
+             - Eye-catching title with power words and emotional triggers
+             - Include primary keyword + benefit/transformation
+             - Optimize for 50-60 characters for perfect SEO display
+             - Add year "2025" for recency signals
           
-          🚀 ADVANCED FORMATTING:
-          - Use semantic HTML5 tags (article, section, aside, etc.)
-          - Add schema markup comments for rich snippets
-          - Include accessibility features (alt text, ARIA labels)
-          - Create visually appealing content blocks
+          2. **Meta & SEO Foundation**
+             - Compelling meta description with action words and FOMO
+             - Include primary keyword in first 120 characters
+             - Add call-to-action in meta description
+             - Character count: 150-160 (not a character more or less)
+          
+          3. **Introduction Excellence** (First 300 words)
+             - Hook: Start with question, statistic, or bold statement
+             - Problem identification: Address reader's pain point
+             - Promise: What they'll learn/gain from reading
+             - Credibility: Brief authority signal
+             - Transition: Smooth bridge to first section
+          
+          4. **Table of Contents** (For 1500+ word articles)
+             - Add clickable jump links for easy navigation
+             - Use benefit-driven section names
+             - Include emoji icons for visual appeal
+             - Improve user experience and dwell time
+          
+          5. **Body Content Optimization**
+             - Well-structured sections with proper H2/H3/H4 hierarchy
+             - Strategic keyword placement (natural, not stuffed)
+             - Pattern interrupts every 300-400 words
+             - Visual breaks and engagement elements
+             - Transition phrases between sections
+          
+          6. **Call-to-Action Strategy**
+             - Early CTA (after intro, 20% through article)
+             - Mid-content CTA (at 50% mark, after high-value section)
+             - Final CTA (in conclusion with clear next steps)
+             - Make CTAs contextual and value-driven
+          
+          7. **Conclusion Mastery**
+             - Recap key takeaways (3-5 bullet points)
+             - Reinforce main benefit/transformation
+             - Clear next steps or action items
+             - Strong final CTA with urgency or value
+             - Leave reader inspired and empowered
+          
+          8. **Enhanced Sections**
+             - Author bio with expertise highlights and credibility
+             - FAQ section optimized for voice search and featured snippets
+             - Related articles suggestions (3-5 internal links)
+             - Resource section with tools/templates
+             - Social proof section (testimonials, case studies, statistics)
+          
+          🚀 ADVANCED HTML FORMATTING:
+          - Use semantic HTML5 tags: <article>, <section>, <aside>, <nav>
+          - Add schema markup in HTML comments: <!-- schema: Article -->
+          - Include ARIA labels for accessibility: aria-label="Main content"
+          - Create visually appealing content blocks with proper styling
           - Add progress indicators for long-form content
-          - Include social sharing optimization
+          - Include social sharing meta tags optimization
+          - Optimize images with descriptive alt text in placeholders
           
-          💎 CONTENT ENHANCEMENT:
-          - Add compelling statistics and data visualizations
-          - Include expert quotes and industry insights
+          💎 CONTENT ENHANCEMENT ARSENAL:
+          - Add compelling statistics with sources
+          - Include expert quotes with proper attribution
           - Create actionable takeaways and checklists
-          - Add "Pro Tips" and "Common Mistakes" sections
-          - Include future predictions and trends
-          - Add personal anecdotes or case studies
+          - Add "Key Takeaway 🎯" and "Pro Tip 💡" sections
+          - Include "Common Mistake ⚠️" warnings
+          - Add future predictions and industry trends
+          - Insert personal anecdotes or case studies
+          - Create comparison tables with styling
+          - Add before/after examples
           
-          📈 SEO & ENGAGEMENT:
-          - Optimize for featured snippets and position zero
-          - Include long-tail keywords naturally
-          - Add internal linking opportunities
-          - Create shareable content blocks
-          - Optimize for voice search queries
-          - Include conversion-focused CTAs
+          📈 SEO & ENGAGEMENT OPTIMIZATION:
+          - **Featured Snippets**: Optimize for position zero
+            * Definition boxes (What is...)
+            * Numbered lists (How to... in X steps)
+            * Comparison tables (X vs Y)
+            * FAQ format with direct answers
           
-          🎨 VISUAL ELEMENTS:
-          - Add image placeholders with detailed alt descriptions
-          - Include infographic suggestions
-          - Add chart and graph recommendations
-          - Create quotable social media snippets
-          - Add interactive element suggestions
+          - **Keyword Strategy**:
+            * Primary keyword: Title, H1, first 100 words, conclusion
+            * Secondary keywords: H2s, throughout content naturally
+            * Long-tail keywords: H3s, FAQ section
+            * LSI keywords: Body paragraphs, organically integrated
+          
+          - **Internal Linking**:
+            * 3-5 contextual internal links with descriptive anchor text
+            * Link to related content naturally in flow
+            * Include "Related Reading" section
+          
+          - **Voice Search Optimization**:
+            * Natural, conversational language
+            * Question-based headings and FAQ
+            * Direct, concise answers to questions
+          
+          - **E-E-A-T Signals**:
+            * Experience: First-hand insights and real examples
+            * Expertise: Author credentials and subject knowledge
+            * Authoritativeness: Data citations and expert quotes
+            * Trustworthiness: Accurate info, proper sources, transparency
+          
+          🎨 VISUAL & INTERACTIVE ELEMENTS:
+          - Add descriptive image placeholders with detailed alt text
+          - Suggest infographic opportunities (data visualization)
+          - Recommend chart and graph placements (statistics, trends)
+          - Create quotable social media snippets (tweetable quotes)
+          - Add interactive element suggestions (calculators, quizzes, polls)
+          - Include video embed recommendations
+          - Add downloadable resource mentions (PDFs, templates, checklists)
+          
+          ⚡ ENGAGEMENT MAXIMIZATION:
+          - Bucket brigades: "Here's the deal:", "The truth is:", "Listen..."
+          - Power words: Ultimate, Proven, Revolutionary, Essential, Transform
+          - Emotional triggers: Curiosity, fear of missing out, desire for success
+          - Specificity: Use exact numbers (not "many" but "47%")
+          - Credibility markers: "According to [Source]", "Research shows"
+          - Social proof: "10,000+ readers", "Trusted by industry leaders"
+          
+          🎯 CONVERSION OPTIMIZATION:
+          - Value-first CTAs: "Get Your Free Template", "Start Your Transformation"
+          - Urgency elements: "Limited Time", "Join 1,000+ Readers Today"
+          - Risk reversal: "No Credit Card Required", "Cancel Anytime"
+          - Benefit-driven: Focus on what reader gains, not features
+          - Multiple CTA types: Email signup, resource download, next article
           
           TONE: {tone}
           TARGET LENGTH: {length}
@@ -950,7 +1127,7 @@ export class LangChainBlogPipeline {
 
 // Export utility functions
 export function createLangChainBlogPipeline(
-  provider: 'openai' | 'google' = 'openai',
+  provider: 'google' | 'baseten' | 'deepseek' = 'google',
   modelName?: string,
   apiKey?: string
 ) {
@@ -961,7 +1138,7 @@ export function createLangChainBlogPipeline(
 export async function generateNextLevelBlog(
   topic: string,
   options: {
-    provider?: 'openai' | 'google';
+    provider?: 'google' | 'baseten' | 'deepseek';
     modelName?: string;
     apiKey?: string;
     tone?: string;

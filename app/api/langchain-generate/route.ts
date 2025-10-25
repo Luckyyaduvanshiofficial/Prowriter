@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
       topic, 
       tone = "professional", 
       length = "medium",
-      provider = "openai",
+      provider = "google",
       modelName,
       stream = false,
       // Next-level options
@@ -29,7 +29,9 @@ export async function POST(request: NextRequest) {
     const pipeline = createLangChainBlogPipeline(
       provider,
       modelName,
-      provider === 'google' ? process.env.GOOGLE_AI_API_KEY : process.env.OPENROUTER_API_KEY
+      provider === 'google' ? process.env.GOOGLE_AI_API_KEY : 
+      provider === 'baseten' ? process.env.BASETEN_API_KEY :
+      process.env.DEEPSEEK_API_KEY
     );
 
     if (stream) {

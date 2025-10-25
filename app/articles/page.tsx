@@ -15,7 +15,9 @@ import {
   Download,
   Trash2,
   Copy,
-  ExternalLink
+  ExternalLink,
+  AlertTriangle,
+  RotateCw
 } from "lucide-react"
 import Link from "next/link"
 
@@ -35,9 +37,10 @@ interface Article {
 }
 
 export default function ArticleHistoryPage() {
-  const [user, setUser] = useState<any>(null)
+  const { user: authUser, isLoaded } = useUser()
   const [articles, setArticles] = useState<Article[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(0)
@@ -46,24 +49,25 @@ export default function ArticleHistoryPage() {
   const router = useRouter()
 
   useEffect(() => {
-    checkUserAndLoadArticles()
-  }, [page])
+    if (isLoaded) {
+      checkUserAndLoadArticles()
+    }
+  }, [page, isLoaded])
 
   const checkUserAndLoadArticles = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
+      setError(null) // Clear previous errors
       
-      if (!user) {
-        // Use demo user for development
-        const mockUser = { id: 'demo-user', email: 'demo@prowriter.miniai.online' }
-        setUser(mockUser)
-        await loadArticles(mockUser.id)
-      } else {
-        setUser(user)
-        await loadArticles(user.id)
+      if (!authUser) {
+        router.push('/sign-in')
+        return
       }
-    } catch (error) {
-      console.error("Error checking user:", error)
+      
+      await loadArticles(authUser.id)
+    } catch (err) {
+      console.error("Error checking user:", err)
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load articles'
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }
@@ -71,7 +75,16 @@ export default function ArticleHistoryPage() {
 
   const loadArticles = async (userId: string) => {
     try {
-      const response = await fetch(`/api/articles?userId=${userId}&page=${page}&limit=10`)
+      const response = await fetch(`/api/articles?userId=${userId}&page=${page}&limit=10`).catch(err => {
+        console.error('Network error:', err)
+        throw new Error('Network error. Please check your connection.')
+      })
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || `Server error: ${response.status}`)
+      }
+      
       const data = await response.json()
       
       if (data.error) {
@@ -80,21 +93,34 @@ export default function ArticleHistoryPage() {
       
       setArticles(data.articles || [])
       setTotalPages(data.pagination?.totalPages || 0)
-    } catch (error) {
-      console.error("Error loading articles:", error)
-      // For demo purposes, show empty state instead of error
+      setError(null) // Clear errors on success
+    } catch (err) {
+      console.error("Error loading articles:", err)
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load articles'
+      setError(errorMessage)
+      // For demo purposes, show empty state instead of crashing
       setArticles([])
     }
   }
 
   const handleDelete = async (articleId: string) => {
-    if (!user || !confirm("Are you sure you want to delete this article?")) return
+    if (!authUser || !confirm("Are you sure you want to delete this article?")) return
     
     setDeleting(articleId)
+    setError(null) // Clear previous errors
+    
     try {
-      const response = await fetch(`/api/articles?id=${articleId}&userId=${user.id}`, {
+      const response = await fetch(`/api/articles?id=${articleId}&userId=${authUser.id}`, {
         method: 'DELETE'
+      }).catch(err => {
+        console.error('Network error:', err)
+        throw new Error('Network error. Please check your connection.')
       })
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || `Server error: ${response.status}`)
+      }
       
       const data = await response.json()
       
@@ -103,11 +129,13 @@ export default function ArticleHistoryPage() {
       }
       
       // Remove from local state
-      setArticles(prev => prev.filter(article => article.id !== articleId))
+      setArticles(articles.filter(a => a.id !== articleId))
       alert("Article deleted successfully!")
-    } catch (error) {
-      console.error("Error deleting article:", error)
-      alert("Failed to delete article. Please try again.")
+    } catch (err) {
+      console.error("Error deleting article:", err)
+      const errorMessage = err instanceof Error ? err.message : 'Failed to delete article'
+      setError(errorMessage)
+      alert(`Failed to delete article: ${errorMessage}`)
     } finally {
       setDeleting(null)
     }
@@ -193,6 +221,49 @@ export default function ArticleHistoryPage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Error Banner */}
+        {error && (
+          <div className="mb-6">
+            <Card className="border-yellow-200 bg-yellow-50">
+              <CardContent className="pt-6">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-start space-x-3">
+                    <div className="h-10 w-10 rounded-full bg-yellow-100 flex items-center justify-center flex-shrink-0">
+                      <AlertTriangle className="h-5 w-5 text-yellow-600" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-yellow-900">Error Loading Articles</h3>
+                      <p className="text-sm text-yellow-700 mt-1">{error}</p>
+                      <div className="flex gap-3 mt-3">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setError(null)
+                            if (authUser) loadArticles(authUser.id)
+                          }}
+                          className="border-yellow-300 hover:bg-yellow-100"
+                        >
+                          <RotateCw className="h-4 w-4 mr-2" />
+                          Retry
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setError(null)}
+                          className="hover:bg-yellow-100"
+                        >
+                          Dismiss
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
         {articles.length === 0 ? (
           <Card className="text-center py-12">
             <CardContent>

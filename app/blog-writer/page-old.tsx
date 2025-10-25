@@ -308,13 +308,13 @@ export default function BlogWriterPage() {
     try {
       console.log('Loading user data for blog writer:', clerkUser?.id)
       
-      // Mock user profile for demo purposes
+      // Mock user profile for demo purposes (using Appwrite user structure)
       const mockProfile = {
         id: clerkUser?.id,
-        email: clerkUser?.emailAddresses[0]?.emailAddress || '',
-        plan: clerkUser?.publicMetadata?.plan || 'pro', // Default to pro for blog writer
-        articles_generated_today: clerkUser?.publicMetadata?.articlesUsed || 3,
-        full_name: clerkUser?.fullName || clerkUser?.firstName + ' ' + clerkUser?.lastName || 'User'
+        email: clerkUser?.email || '',
+        plan: 'pro', // Default to pro for blog writer
+        articles_generated_today: 0,
+        full_name: clerkUser?.name || 'User'
       }
       
       setProfile(mockProfile)

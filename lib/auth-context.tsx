@@ -23,14 +23,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchUser = async () => {
     try {
+      console.log('🔍 Fetching current user...')
       const currentUser = await getCurrentUser()
+      console.log('✅ User fetched:', currentUser ? `${currentUser.email} (${currentUser.id})` : 'No user')
       setUser(currentUser)
-    } catch (error) {
-      console.error('Error fetching user:', error)
+    } catch (error: any) {
+      // Silently handle auth errors (401) - user just isn't logged in
+      console.log('⚠️ Error fetching user:', error?.code, error?.message)
+      if (error?.code !== 401) {
+        console.error('Error fetching user:', error)
+      }
       setUser(null)
     } finally {
       setIsLoaded(true)
       setLoading(false)
+      console.log('🏁 Auth loaded, isLoaded=true')
     }
   }
 

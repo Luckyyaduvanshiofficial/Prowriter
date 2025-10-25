@@ -1,34 +1,42 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getCurrentUserId } from '@/lib/auth'
-import { DatabaseQueries } from '@/lib/neon'
+import { serverDatabases, DATABASE_ID, COLLECTIONS } from '@/lib/appwrite'
+import { Query } from 'node-appwrite'
 
 export async function GET(request: NextRequest) {
   try {
-    // Get the authenticated user
-    const userId = await getCurrentUserId(request)
+    const { searchParams } = new URL(request.url)
+    const userId = searchParams.get('userId')
+    const page = parseInt(searchParams.get('page') || '1')
+    const limit = parseInt(searchParams.get('limit') || '10')
     
     if (!userId) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
+        { error: 'User ID is required' },
+        { status: 400 }
       )
     }
 
-    const { searchParams } = new URL(request.url)
-    const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '10')
+    // Get articles from Appwrite database
     const offset = (page - 1) * limit
-
-    // Get articles from database
-    const articles = await DatabaseQueries.getArticlesByUser(userId, limit, offset)
+    
+    const response = await serverDatabases.listDocuments(
+      DATABASE_ID,
+      COLLECTIONS.ARTICLES,
+      [
+        Query.equal('userId', userId),
+        Query.orderDesc('$createdAt'),
+        Query.limit(limit),
+        Query.offset(offset)
+      ]
+    )
 
     return NextResponse.json({
-      articles: articles,
+      articles: response.documents,
       pagination: {
         page,
         limit,
-        total: articles.length,
-        totalPages: Math.ceil(articles.length / limit)
+        total: response.total,
+        totalPages: Math.ceil(response.total / limit)
       }
     })
 
@@ -45,17 +53,35 @@ export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const articleId = searchParams.get('id')
-    const userId = await getCurrentUserId(request)
+    const userId = searchParams.get('userId')
 
     if (!articleId || !userId) {
       return NextResponse.json(
-        { error: 'Missing articleId or unauthorized' },
+        { error: 'Missing articleId or userId' },
         { status: 400 }
       )
     }
 
-    // Delete the article (only if it belongs to the user)
-    await DatabaseQueries.deleteArticle(articleId, userId)
+    // Verify the article belongs to the user before deleting
+    const article = await serverDatabases.getDocument(
+      DATABASE_ID,
+      COLLECTIONS.ARTICLES,
+      articleId
+    )
+
+    if (article.userId !== userId) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 403 }
+      )
+    }
+
+    // Delete the article
+    await serverDatabases.deleteDocument(
+      DATABASE_ID,
+      COLLECTIONS.ARTICLES,
+      articleId
+    )
 
     return NextResponse.json({
       success: true,

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { useUser } from "@/lib/auth-context"
 import { Button } from "@/components/ui/button"
@@ -54,7 +54,9 @@ import {
   CheckCircle,
   Edit3,
   Hash,
-  Gauge
+  Gauge,
+  AlertTriangle,
+  RotateCw
 } from "lucide-react"
 import Link from "next/link"
 import { getAvailableModels, AI_MODELS, getModelById } from "@/lib/ai-providers"
@@ -217,6 +219,7 @@ export default function BlogWriterPage() {
   const { user: clerkUser, isSignedIn, isLoaded } = useUser()
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [generating, setGenerating] = useState(false)
   const [saving, setSaving] = useState(false)
   const [generatingOutline, setGeneratingOutline] = useState(false)
@@ -233,7 +236,7 @@ export default function BlogWriterPage() {
   // Form state
   const [articleType, setArticleType] = useState("how-to")
   const [topic, setTopic] = useState("")
-  const [aiEngine, setAiEngine] = useState("gpt-oss-120b")
+  const [aiEngine, setAiEngine] = useState("gemini-2-flash")
   const [contentLength, setContentLength] = useState("medium")
   const [brandVoice, setBrandVoice] = useState("friendly")
   const [seoKeywords, setSeoKeywords] = useState("")
@@ -279,47 +282,58 @@ export default function BlogWriterPage() {
       return
     }
     
-    if (isSignedIn && clerkUser) {
+    if (isSignedIn && clerkUser && !profile) {
       loadUserData()
     }
-  }, [isLoaded, isSignedIn, clerkUser, router])
+  }, [isLoaded, isSignedIn, clerkUser?.id])
 
   // Update available models when profile changes
   useEffect(() => {
-    if (profile) {
-      const userTier = profile.plan === 'pro' ? 'pro' : 'free'
-      let models = getAvailableModels(userTier)
-      
-      // Filter by provider if not 'all'
-      if (selectedProvider !== 'all') {
-        models = models.filter(model => model.provider.toLowerCase() === selectedProvider.toLowerCase())
-      }
-      
-      setAvailableModels(models)
+    if (!profile) return
+    
+    const userTier = profile.plan === 'pro' ? 'pro' : 'free'
+    let models = getAvailableModels(userTier)
+    
+    // Filter by provider if not 'all'
+    if (selectedProvider !== 'all') {
+      models = models.filter(model => model.provider.toLowerCase() === selectedProvider.toLowerCase())
+    }
+    
+    // Only update if models actually changed
+    setAvailableModels(prevModels => {
+      const modelsChanged = JSON.stringify(prevModels.map(m => m.id)) !== JSON.stringify(models.map(m => m.id))
+      if (!modelsChanged) return prevModels
       
       // Set default AI engine if current selection is not available
-      if (!models.some(model => model.id === aiEngine)) {
-        setAiEngine(models[0]?.id || 'qwen-72b')
+      const currentEngineValid = models.some(model => model.id === aiEngine)
+      if (!currentEngineValid && models.length > 0) {
+        setAiEngine(models[0].id)
       }
-    }
-  }, [profile, aiEngine, selectedProvider])
+      
+      return models
+    })
+  }, [profile?.plan, selectedProvider])
 
   const loadUserData = async () => {
     try {
       console.log('Loading user data for blog writer:', clerkUser?.id)
       
-      // Mock user profile for demo purposes
+      // Mock user profile for demo purposes (using Appwrite user structure)
       const mockProfile = {
         id: clerkUser?.id,
-        email: clerkUser?.emailAddresses[0]?.emailAddress || '',
-        plan: clerkUser?.publicMetadata?.plan || 'pro', // Default to pro for blog writer
-        articles_generated_today: clerkUser?.publicMetadata?.articlesUsed || 3,
-        full_name: clerkUser?.fullName || clerkUser?.firstName + ' ' + clerkUser?.lastName || 'User'
+        email: clerkUser?.email || '',
+        plan: 'pro', // Default to pro for blog writer
+        articles_generated_today: 0,
+        full_name: clerkUser?.name || 'User'
       }
       
       setProfile(mockProfile)
-    } catch (error) {
-      console.error('Error loading user data:', error)
+      setError(null) // Clear any previous errors
+    } catch (err) {
+      console.error('Error loading user data:', err)
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load user data'
+      setError(errorMessage)
+      
       // Fallback to demo mode
       const mockProfile = {
         id: 'demo-user',
@@ -335,10 +349,14 @@ export default function BlogWriterPage() {
   }
 
   const handleGenerateOutline = async () => {
-    if (!topic.trim()) return
+    if (!topic.trim()) {
+      setError('Please enter a topic')
+      return
+    }
     
     setGeneratingOutline(true)
     setCurrentStep(1)
+    setError(null) // Clear any previous errors
     
     try {
       // Check if we're in demo mode  
@@ -434,36 +452,52 @@ ${articleType === 'comparison' ? `
           brandVoice,
           aiEngine
         }),
+      }).catch(err => {
+        console.error('Network error:', err)
+        throw new Error('Network error. Please check your connection.')
       })
 
       if (!response.ok) {
-        throw new Error("Failed to generate outline")
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || `Server error: ${response.status}`)
       }
 
       const data = await response.json()
+      
+      if (!data.outline) {
+        throw new Error('No outline generated')
+      }
+      
       setGeneratedOutline(data.outline)
       setCurrentStep(2)
       
-    } catch (error) {
-      console.error("Error generating outline:", error)
-      alert("Failed to generate outline. Please try again.")
+    } catch (err) {
+      console.error("Error generating outline:", err)
+      const errorMessage = err instanceof Error ? err.message : 'Failed to generate outline'
+      setError(errorMessage)
+      alert(`Failed to generate outline: ${errorMessage}. Please try again.`)
     } finally {
       setGeneratingOutline(false)
     }
   }
 
   const handleGenerateArticle = async () => {
-    if (!profile) return
+    if (!profile) {
+      setError('User profile not loaded')
+      return
+    }
 
     const dailyLimit = profile.plan === 'free' ? 5 : profile.plan === 'pro' ? 25 : 999
     
     if (profile.articles_generated_today >= dailyLimit) {
+      setError(`Daily limit reached (${dailyLimit} articles)`)
       alert("You've reached your daily limit. Upgrade to Pro for more articles!")
       return
     }
 
     setGenerating(true)
     setCurrentStep(3)
+    setError(null) // Clear any previous errors
     
     try {
       // Show progress updates
@@ -501,6 +535,10 @@ ${articleType === 'comparison' ? `
         includeSerpAnalysis: profile.plan !== 'free' && includeSerpAnalysis
       }
 
+      // Determine provider from selected AI model
+      const selectedModel = getModelById(aiEngine)
+      const providerToUse = selectedModel?.provider || 'google'
+
       // Make API call to next-level generate content
       const response = await fetch('/api/next-level-generate', {
         method: 'POST',
@@ -511,21 +549,33 @@ ${articleType === 'comparison' ? `
           ...requestPayload,
           // Next-level specific options
           nextLevel: true,
-          provider: 'baseten', // Use Baseten as default provider
+          provider: providerToUse, // Use dynamic provider based on selected model
           includeInteractiveElements: profile.plan !== 'free',
           addUniqueEnhancements: true,
           generateAdvancedMetadata: true
         }),
+      }).catch(err => {
+        clearInterval(progressInterval)
+        console.error('Network error:', err)
+        throw new Error('Network error. Please check your connection.')
       })
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
+        clearInterval(progressInterval)
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || `Server error: ${response.status}`)
       }
 
       const data = await response.json()
       
       if (!data.success || data.error) {
+        clearInterval(progressInterval)
         throw new Error(data.error || 'Failed to generate article')
+      }
+
+      if (!data.data || !data.data.article) {
+        clearInterval(progressInterval)
+        throw new Error('No article content received')
       }
 
       clearInterval(progressInterval)
@@ -540,7 +590,7 @@ ${articleType === 'comparison' ? `
       setArticleTitle(extractedTitle)
       
       // Use advanced metadata from next-level generation
-      const metaDescription = data.data.metadata.meta_description || `Comprehensive guide to ${topic}. Expert insights and practical advice.`
+      const metaDescription = data.data.metadata?.meta_description || `Comprehensive guide to ${topic}. Expert insights and practical advice.`
       setMetaDescription(metaDescription)
       
       // Log generation statistics safely
@@ -567,9 +617,10 @@ ${articleType === 'comparison' ? `
         articles_generated_today: profile.articles_generated_today + 1
       })
       
-    } catch (error) {
-      console.error("Error generating article:", error)
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+    } catch (err) {
+      console.error("Error generating article:", err)
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred'
+      setError(errorMessage)
       alert(`Failed to generate article: ${errorMessage}. Please try again.`)
       setCurrentStep(2) // Reset to previous step
     } finally {
@@ -578,9 +629,14 @@ ${articleType === 'comparison' ? `
   }
 
   const handleSave = async () => {
-    if (!generatedContent || !clerkUser) return
+    if (!generatedContent || !clerkUser) {
+      setError('Cannot save: missing content or user')
+      return
+    }
     
     setSaving(true)
+    setError(null) // Clear any previous errors
+    
     try {
       const response = await fetch('/api/save-article', {
         method: 'POST',
@@ -602,10 +658,14 @@ ${articleType === 'comparison' ? `
           brandVoice: brandVoice,
           topic: topic
         }),
+      }).catch(err => {
+        console.error('Network error:', err)
+        throw new Error('Network error. Please check your connection.')
       })
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || `Server error: ${response.status}`)
       }
 
       const data = await response.json()
@@ -615,9 +675,10 @@ ${articleType === 'comparison' ? `
       }
 
       alert("Article saved successfully!")
-    } catch (error) {
-      console.error("Error saving article:", error)
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+    } catch (err) {
+      console.error("Error saving article:", err)
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred'
+      setError(errorMessage)
       alert(`Failed to save article: ${errorMessage}. Please try again.`)
     } finally {
       setSaving(false)
@@ -694,8 +755,8 @@ ${articleType === 'comparison' ? `
                   </h1>
                   <div className="flex items-center space-x-2">
                     <p className="text-sm text-gray-600 hidden sm:block">Create professional, SEO-optimized content</p>
-                    <Badge variant="outline" className="text-xs border-green-200 text-green-700 bg-green-50">
-                      Powered by Baseten
+                    <Badge variant="outline" className="text-xs border-blue-200 text-blue-700 bg-blue-50">
+                      Multi-Provider AI
                     </Badge>
                   </div>
                 </div>
@@ -723,6 +784,49 @@ ${articleType === 'comparison' ? `
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Error Banner */}
+        {error && (
+          <div className="mb-6">
+            <Card className="border-yellow-200 bg-yellow-50">
+              <CardContent className="pt-6">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-start space-x-3">
+                    <div className="h-10 w-10 rounded-full bg-yellow-100 flex items-center justify-center flex-shrink-0">
+                      <AlertTriangle className="h-5 w-5 text-yellow-600" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-yellow-900">Warning</h3>
+                      <p className="text-sm text-yellow-700 mt-1">{error}</p>
+                      <div className="flex gap-3 mt-3">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setError(null)
+                            loadUserData()
+                          }}
+                          className="border-yellow-300 hover:bg-yellow-100"
+                        >
+                          <RotateCw className="h-4 w-4 mr-2" />
+                          Retry
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setError(null)}
+                          className="hover:bg-yellow-100"
+                        >
+                          Dismiss
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
         {/* Enhanced Progress Indicator */}
         {(generating || generatingOutline) && (
           <div className="mb-8">
@@ -1098,28 +1202,22 @@ ${articleType === 'comparison' ? `
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="all">All Providers</SelectItem>
+                          <SelectItem value="google">
+                            <div className="flex items-center space-x-2">
+                              <span>🟡 Google AI</span>
+                              <Badge variant="secondary" className="text-xs">Gemini 2.5 Flash</Badge>
+                            </div>
+                          </SelectItem>
                           <SelectItem value="baseten">
                             <div className="flex items-center space-x-2">
-                              <span>Baseten</span>
+                              <span>🔥 Baseten</span>
                               <Badge variant="secondary" className="text-xs">GPT OSS 120B</Badge>
                             </div>
                           </SelectItem>
-                          <SelectItem value="openrouter">
+                          <SelectItem value="deepseek">
                             <div className="flex items-center space-x-2">
-                              <span>OpenRouter</span>
-                              <Badge variant="secondary" className="text-xs">Multiple Models</Badge>
-                            </div>
-                          </SelectItem>
-                          <SelectItem value="google">
-                            <div className="flex items-center space-x-2">
-                              <span>Google AI</span>
-                              <Badge variant="secondary" className="text-xs">Gemini</Badge>
-                            </div>
-                          </SelectItem>
-                          <SelectItem value="together">
-                            <div className="flex items-center space-x-2">
-                              <span>Together.ai</span>
-                              <Badge variant="secondary" className="text-xs">Free Models</Badge>
+                              <span>🚀 DeepSeek</span>
+                              <Badge variant="secondary" className="text-xs">Chat & Coder</Badge>
                             </div>
                           </SelectItem>
                         </SelectContent>

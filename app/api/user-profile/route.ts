@@ -1,16 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getCurrentUser, getUserProfile, updateUserProfile } from '@/lib/auth'
+import { getUserProfile, updateUserProfile } from '@/lib/auth'
 
 export async function GET(req: NextRequest) {
   try {
-    const user = await getCurrentUser()
+    // Get userId from query parameters instead of session
+    const { searchParams } = new URL(req.url)
+    const userId = searchParams.get('userId')
     
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!userId) {
+      return NextResponse.json({ error: 'User ID required' }, { status: 400 })
     }
     
     // Get user profile from database
-    const profile = await getUserProfile(user.id)
+    const profile = await getUserProfile(userId)
     
     if (!profile) {
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
@@ -19,9 +21,9 @@ export async function GET(req: NextRequest) {
     // Return profile data
     return NextResponse.json({ 
       profile: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
+        id: userId,
+        email: profile.email,
+        name: profile.name,
         plan: profile.plan,
         articles_generated_today: profile.articlesGeneratedToday,
         articles_limit: profile.plan === 'pro' ? 25 : profile.plan === 'admin' ? 999 : 5,
@@ -39,27 +41,26 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const user = await getCurrentUser()
+    const data = await req.json()
+    const { userId, ...updateData } = data
     
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!userId) {
+      return NextResponse.json({ error: 'User ID required' }, { status: 400 })
     }
     
-    const data = await req.json()
-    
     // Update user profile in database
-    const result = await updateUserProfile(user.id, data)
+    const result = await updateUserProfile(userId, updateData)
     
     if (!result.success) {
       return NextResponse.json({ error: result.error }, { status: 400 })
     }
     
     // Get updated profile
-    const profile = await getUserProfile(user.id)
+    const profile = await getUserProfile(userId)
     
     return NextResponse.json({ 
       profile: {
-        id: user.id,
+        id: userId,
         plan: profile?.plan,
         articles_generated_today: profile?.articlesGeneratedToday,
         articles_limit: profile?.plan === 'pro' ? 25 : 5,

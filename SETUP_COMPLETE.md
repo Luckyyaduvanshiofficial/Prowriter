@@ -149,7 +149,7 @@ Your app is now configured to use **Gemini 2.0 Flash** as the default model:
 
 ```typescript
 // Default model for all users
-Model: gemini-2.0-flash-exp
+Model: gemini-2.5-flash-exp
 Provider: Google AI
 Tier: Free (no cost per token)
 Max Tokens: 8,192
@@ -157,21 +157,42 @@ Max Tokens: 8,192
 
 ## 📚 Available AI Models
 
-Your app supports multiple AI providers and models:
+Your app now uses only 3 high-quality providers:
 
-### Google AI (Primary)
-- ⭐ **Gemini 2.0 Flash** (Default) - Fast & Free
-- **Gemini 1.5 Pro** - Advanced reasoning (Pro tier)
+### Google AI (Free Tier - Default)
+- ⭐ **Gemini 2.5 Flash** (Default) - Fast, Free & Latest
+  - Cost: $0 per 1K tokens
+  - Max Tokens: 8,192
+  - Features: Fast Generation, Real-time, Efficient
 
-### Together.ai (Free alternatives)
-- **LLaMA 3.3 70B Turbo** - High quality, free
-- **DeepSeek R1 Distill 70B** - Advanced reasoning
-- **LLaMA Vision Free** - Multimodal capabilities
+### Baseten (Pro Tier)
+- 🔥 **GPT OSS 120B** - High-performance open-source model
+  - Cost: $2.0 per 1K tokens
+  - Max Tokens: 4,096
+  - Features: Large Scale, High Quality, Advanced Reasoning
 
-### OpenRouter (Premium options)
-- **Qwen 2.5 72B** - General purpose
-- **LLaMA 3.1 405B** - Premium model (Pro tier)
-- **DeepSeek Coder** - Technical writing
+### DeepSeek API (Pro Tier)
+- 🚀 **DeepSeek Chat** - Flagship model with exceptional reasoning
+  - Cost: $0.27 per 1K tokens
+  - Max Tokens: 8,192
+  - Features: Advanced Reasoning, Long Context, Cost-Effective
+  
+- 💻 **DeepSeek Coder** - Specialized for technical content
+  - Cost: $0.14 per 1K tokens
+  - Max Tokens: 8,192
+  - Features: Code Generation, Technical Writing, Programming
+
+## 🎯 Model Selection Guide
+
+**For Free Users:**
+- Use Gemini 2.5 Flash for all content generation
+- Fast, efficient, and completely free
+- Perfect for blog posts, articles, and general content
+
+**For Pro Users:**
+- Use **GPT OSS 120B** for highest quality content
+- Use **DeepSeek Chat** for cost-effective advanced reasoning
+- Use **DeepSeek Coder** for technical/programming content
 
 ## 🔐 Security Notes
 

@@ -119,12 +119,12 @@ export function MobileNav({
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
                   <span className="text-white font-medium text-sm">
-                    {user.firstName?.charAt(0) || user.emailAddresses?.[0]?.emailAddress?.charAt(0) || 'U'}
+                    {user.name?.charAt(0) || user.email?.charAt(0) || 'U'}
                   </span>
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-900 truncate">
-                    {user.fullName || user.emailAddresses?.[0]?.emailAddress}
+                    {user.name || user.email}
                   </p>
                   <p className="text-xs text-gray-500">
                     {profile.plan === 'pro' ? 'Pro Member' : 'Free Plan'}

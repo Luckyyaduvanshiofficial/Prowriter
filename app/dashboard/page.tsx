@@ -38,20 +38,34 @@ export default function Dashboard() {
   const [profile, setProfile] = useState<any>(null)
   const [articles, setArticles] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const router = useRouter()
 
   useEffect(() => {
-    if (isLoaded && !isSignedIn) {
-      router.push('/sign-in')
+    console.log('📊 Dashboard useEffect:', { isLoaded, isSignedIn, hasUser: !!user })
+    
+    // Don't redirect if still loading
+    if (!isLoaded) {
+      console.log('⏳ Still loading auth state...')
       return
     }
     
-    if (isSignedIn && user) {
-      loadUserData()
+    if (!isSignedIn || !user) {
+      console.log('❌ Not signed in, redirecting to sign-in')
+      // Add a small delay to ensure auth state is fully loaded
+      const timer = setTimeout(() => {
+        router.push('/sign-in?redirect=/dashboard')
+      }, 500)
+      return () => clearTimeout(timer)
     }
+    
+    console.log('✅ User signed in, loading data')
+    loadUserData()
   }, [isLoaded, isSignedIn, user, router])
 
   const loadUserData = async () => {
+    setError(null) // Clear any previous errors
+    
     try {
       console.log('Loading user data for:', user?.id)
       
@@ -61,55 +75,72 @@ export default function Dashboard() {
         return
       }
 
-      console.log('User found:', user.emailAddresses[0]?.emailAddress)
+      console.log('User found:', user.email)
 
       // Fetch real user profile and articles data
       const [profileResponse, articlesResponse] = await Promise.all([
-        fetch('/api/user-profile'),
-        fetch('/api/articles')
+        fetch(`/api/user-profile?userId=${user.id}`).catch(err => {
+          console.error('Profile API error:', err)
+          return null
+        }),
+        fetch(`/api/articles?userId=${user.id}`).catch(err => {
+          console.error('Articles API error:', err)
+          return null
+        })
       ])
       
-      if (profileResponse.ok) {
-        const { profile } = await profileResponse.json()
-        setProfile(profile)
+      if (profileResponse && profileResponse.ok) {
+        try {
+          const { profile } = await profileResponse.json()
+          setProfile(profile)
+        } catch (err) {
+          console.error('Error parsing profile response:', err)
+          // Use fallback profile
+          setProfile({
+            id: user.id,
+            email: user.email || '',
+            plan: 'free',
+            articles_generated_today: 0,
+            articles_limit: 5,
+            full_name: user.name || 'User'
+          })
+        }
       } else {
-        // Fallback profile if API fails
+        // Fallback profile if API fails (using Appwrite user structure)
         const fallbackProfile = {
           id: user.id,
-          email: user.emailAddresses[0]?.emailAddress || '',
-          plan: user.publicMetadata?.plan || 'free',
-          articles_generated_today: user.publicMetadata?.articlesUsed || 2,
-          articles_limit: user.publicMetadata?.plan === 'pro' ? 25 : 5,
-          full_name: user.fullName || user.firstName + ' ' + user.lastName || 'User'
+          email: user.email || '',
+          plan: 'free',
+          articles_generated_today: 0,
+          articles_limit: 5,
+          full_name: user.name || 'User'
         }
         setProfile(fallbackProfile)
       }
       
-      if (articlesResponse.ok) {
-        const { articles } = await articlesResponse.json()
-        setArticles(articles)
+      if (articlesResponse && articlesResponse.ok) {
+        try {
+          const { articles } = await articlesResponse.json()
+          setArticles(articles || [])
+        } catch (err) {
+          console.error('Error parsing articles response:', err)
+          setArticles([])
+        }
       } else {
         // Fallback articles if API fails
-        const fallbackArticles = [
-          {
-            id: 1,
-            title: "Getting Started with AI Content Generation",
-            created_at: new Date().toISOString(),
-            status: "published",
-            word_count: 1250
-          }
-        ]
-        setArticles(fallbackArticles)
+        setArticles([])
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading user data:', error)
-      // Fallback to demo mode
+      setError(error?.message || 'Failed to load dashboard data. Please refresh the page.')
+      
+      // Fallback to demo mode (using Appwrite user structure)
       const mockProfile = {
-        id: 'demo-user',
-        email: 'demo@prowriter.miniai.online',
+        id: user?.id || 'demo-user',
+        email: user?.email || 'demo@prowriter.ai',
         plan: 'free',
-        articles_generated_today: 2,
-        full_name: 'Demo User'
+        articles_generated_today: 0,
+        full_name: user?.name || 'Demo User'
       }
       setProfile(mockProfile)
       setArticles([])
@@ -130,6 +161,35 @@ export default function Dashboard() {
           </div>
           <p className="text-gray-600">Loading your dashboard...</p>
         </div>
+      </div>
+    )
+  }
+
+  // Show error state if there's an error
+  if (error && !profile) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center p-4">
+        <Card className="max-w-md w-full">
+          <CardHeader>
+            <CardTitle className="text-red-600 flex items-center">
+              <span className="mr-2">⚠️</span> Error Loading Dashboard
+            </CardTitle>
+            <CardDescription>{error}</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-gray-600">
+              We encountered an issue loading your dashboard. This could be due to a network error or server issue.
+            </p>
+            <div className="flex flex-col gap-2">
+              <Button onClick={() => window.location.reload()} className="w-full">
+                Retry
+              </Button>
+              <Button variant="outline" onClick={() => router.push('/sign-in')} className="w-full">
+                Back to Sign In
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     )
   }
@@ -161,10 +221,44 @@ export default function Dashboard() {
       <AppHeader />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Error Banner - Shows non-critical errors */}
+        {error && profile && (
+          <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <div className="flex items-start">
+              <div className="flex-shrink-0">
+                <span className="text-yellow-600 text-xl">⚠️</span>
+              </div>
+              <div className="ml-3 flex-1">
+                <h3 className="text-sm font-medium text-yellow-800">
+                  Some data couldn't be loaded
+                </h3>
+                <p className="mt-1 text-sm text-yellow-700">{error}</p>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => {
+                    setError(null)
+                    loadUserData()
+                  }}
+                  className="mt-2"
+                >
+                  Try Again
+                </Button>
+              </div>
+              <button 
+                onClick={() => setError(null)}
+                className="ml-3 flex-shrink-0 text-yellow-600 hover:text-yellow-800"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Welcome Section */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Welcome back, {user?.firstName || user?.emailAddresses[0]?.emailAddress?.split('@')[0] || 'User'}!
+            Welcome back, {user?.name?.split(' ')[0] || user?.email?.split('@')[0] || 'User'}!
           </h1>
           <p className="text-gray-600">Generate expert-level AI comparison articles in minutes.</p>
         </div>

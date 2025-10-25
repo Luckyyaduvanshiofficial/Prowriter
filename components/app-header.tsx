@@ -29,16 +29,16 @@ export function AppHeader({
   const { user, isSignedIn } = useUser()
   const { signOut } = useClerk()
   
-  // User profile for display
+  // User profile for display (Appwrite structure)
   const profile = isSignedIn && user ? {
-    plan: user.publicMetadata?.plan || 'free',
-    articlesUsed: user.publicMetadata?.articlesUsed || 0,
-    articlesLimit: user.publicMetadata?.articlesLimit || 5
+    plan: 'free', // Will be fetched from user profile API
+    articlesUsed: 0,
+    articlesLimit: 5
   } : null
 
   const userInitials = user ? 
-    `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`.toUpperCase() || 
-    user.emailAddresses?.[0]?.emailAddress?.[0]?.toUpperCase() || 'U'
+    user.name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 
+    user.email?.[0]?.toUpperCase() || 'U'
     : 'U'
 
   return (
@@ -99,8 +99,8 @@ export function AppHeader({
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="w-56" align="end">
                     <DropdownMenuItem className="flex flex-col items-start">
-                      <div className="font-medium">{user?.fullName || 'User'}</div>
-                      <div className="text-sm text-muted-foreground">{user?.emailAddresses?.[0]?.emailAddress}</div>
+                      <div className="font-medium">{user?.name || 'User'}</div>
+                      <div className="text-sm text-muted-foreground">{user?.email}</div>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
                       <Link href="/dashboard">Dashboard</Link>

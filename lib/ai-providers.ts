@@ -4,7 +4,7 @@
 export interface AIModel {
   id: string
   name: string
-  provider: 'openrouter' | 'google' | 'together' | 'baseten'
+  provider: 'google' | 'baseten' | 'deepseek'
   modelId: string
   tier: 'free' | 'pro'
   features: string[]
@@ -21,55 +21,9 @@ export interface AIProvider {
   models: AIModel[]
 }
 
-// AI Models Configuration
+// AI Models Configuration - Only Baseten, Gemini, and DeepSeek
 export const AI_MODELS: AIModel[] = [
-  // OpenRouter Models
-  {
-    id: 'qwen-72b',
-    name: 'Qwen 2.5 72B Instruct',
-    provider: 'openrouter',
-    modelId: 'qwen/qwen-2.5-72b-instruct',
-    tier: 'free',
-    features: ['General Purpose', 'Fast', 'Multilingual'],
-    maxTokens: 8192,
-    costPer1000Tokens: 0.4,
-    description: 'Fast and efficient model for general content generation'
-  },
-  {
-    id: 'llama-405b',
-    name: 'LLaMA 3.1 405B',
-    provider: 'openrouter',
-    modelId: 'meta-llama/llama-3.1-405b-instruct',
-    tier: 'pro',
-    features: ['Advanced Reasoning', 'High Quality', 'Large Context'],
-    maxTokens: 16384,
-    costPer1000Tokens: 2.7,
-    description: 'Premium model with exceptional reasoning capabilities'
-  },
-  {
-    id: 'deepseek-coder',
-    name: 'DeepSeek Coder',
-    provider: 'openrouter',
-    modelId: 'deepseek/deepseek-coder',
-    tier: 'free',
-    features: ['Code Generation', 'Technical Writing', 'Programming'],
-    maxTokens: 8192,
-    costPer1000Tokens: 0.14,
-    description: 'Specialized for technical and programming content'
-  },
-  {
-    id: 'gemini-pro',
-    name: 'Gemini Pro',
-    provider: 'openrouter',
-    modelId: 'google/gemini-pro',
-    tier: 'pro',
-    features: ['Multimodal', 'Creative Writing', 'Analysis'],
-    maxTokens: 12288,
-    costPer1000Tokens: 0.5,
-    description: 'Google\'s advanced multimodal AI model'
-  },
-
-  // Google AI Models (Direct) - PRIMARY MODELS
+  // Google AI Models (Direct) - FREE TIER (Default)
   {
     id: 'gemini-2-flash',
     name: 'Gemini 2.5 Flash',
@@ -81,7 +35,7 @@ export const AI_MODELS: AIModel[] = [
     costPer1000Tokens: 0,
     description: '⭐ Default - Latest Gemini model optimized for speed and efficiency'
   },
-  // Baseten Models
+  // Baseten Models - PRO TIER
   {
     id: 'gpt-oss-120b',
     name: 'GPT OSS 120B',
@@ -89,13 +43,36 @@ export const AI_MODELS: AIModel[] = [
     modelId: 'openai/gpt-oss-120b',
     tier: 'pro',
     features: ['Large Scale', 'High Quality', 'Advanced Reasoning'],
-    maxTokens: 1000,
+    maxTokens: 4096,
     costPer1000Tokens: 2.0,
-    description: 'High-performance open-source GPT model with 120B parameters'
+    description: '🔥 Pro - High-performance open-source GPT model with 120B parameters'
+  },
+  // DeepSeek API - PRO TIER
+  {
+    id: 'deepseek-chat',
+    name: 'DeepSeek Chat',
+    provider: 'deepseek',
+    modelId: 'deepseek-chat',
+    tier: 'pro',
+    features: ['Advanced Reasoning', 'Long Context', 'Cost-Effective'],
+    maxTokens: 8192,
+    costPer1000Tokens: 0.27,
+    description: '🚀 Pro - DeepSeek\'s flagship model with exceptional reasoning at low cost'
+  },
+  {
+    id: 'deepseek-coder',
+    name: 'DeepSeek Coder',
+    provider: 'deepseek',
+    modelId: 'deepseek-coder',
+    tier: 'pro',
+    features: ['Code Generation', 'Technical Writing', 'Programming'],
+    maxTokens: 8192,
+    costPer1000Tokens: 0.14,
+    description: '💻 Pro - Specialized for technical and programming content'
   }
 ]
 
-// Provider Configurations
+// Provider Configurations - Only Baseten, Gemini, and DeepSeek
 export const AI_PROVIDERS: Record<string, AIProvider> = {
   google: {
     id: 'google',
@@ -104,26 +81,19 @@ export const AI_PROVIDERS: Record<string, AIProvider> = {
     apiKeyEnv: 'GOOGLE_API_KEY',
     models: AI_MODELS.filter(m => m.provider === 'google')
   },
-  openrouter: {
-    id: 'openrouter',
-    name: 'OpenRouter',
-    baseURL: 'https://openrouter.ai/api/v1',
-    apiKeyEnv: 'OPENROUTER_API_KEY',
-    models: AI_MODELS.filter(m => m.provider === 'openrouter')
-  },
-  together: {
-    id: 'together',
-    name: 'Together.ai',
-    baseURL: 'https://api.together.xyz/v1',
-    apiKeyEnv: 'TOGETHER_AI_API_KEY',
-    models: AI_MODELS.filter(m => m.provider === 'together')
-  },
   baseten: {
     id: 'baseten',
     name: 'Baseten',
     baseURL: 'https://inference.baseten.co/v1',
     apiKeyEnv: 'BASETEN_API_KEY',
     models: AI_MODELS.filter(m => m.provider === 'baseten')
+  },
+  deepseek: {
+    id: 'deepseek',
+    name: 'DeepSeek',
+    baseURL: 'https://api.deepseek.com/v1',
+    apiKeyEnv: 'DEEPSEEK_API_KEY',
+    models: AI_MODELS.filter(m => m.provider === 'deepseek')
   }
 }
 
@@ -193,16 +163,22 @@ export class AIProviderClient {
       throw new Error(`Model ${request.model} does not belong to provider ${this.provider.name}`)
     }
 
+    // Optimize temperature for better content quality
+    // Lower temperature (0.3-0.5) for factual, technical content
+    // Medium temperature (0.7-0.8) for creative, engaging content
+    // Higher temperature (0.9-1.0) for highly creative, varied content
+    const optimizedTemperature = request.temperature !== undefined 
+      ? request.temperature 
+      : 0.7 // Default to creative but controlled
+
     try {
       switch (this.provider.id) {
-        case 'openrouter':
-          return await this.generateOpenRouter(request, model)
         case 'google':
-          return await this.generateGoogle(request, model)
-        case 'together':
-          return await this.generateTogether(request, model)
+          return await this.generateGoogle({ ...request, temperature: optimizedTemperature }, model)
         case 'baseten':
-          return await this.generateBaseten(request, model)
+          return await this.generateBaseten({ ...request, temperature: optimizedTemperature }, model)
+        case 'deepseek':
+          return await this.generateDeepSeek({ ...request, temperature: optimizedTemperature }, model)
         default:
           throw new Error(`Unsupported provider: ${this.provider.id}`)
       }
@@ -212,46 +188,7 @@ export class AIProviderClient {
     }
   }
 
-  private async generateOpenRouter(request: GenerationRequest, model: AIModel): Promise<GenerationResponse> {
-    const response = await fetch(`${this.provider.baseURL}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${this.apiKey}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
-        'X-Title': 'AI Blog Writer'
-      },
-      body: JSON.stringify({
-        model: model.modelId,
-        messages: request.messages,
-        temperature: request.temperature || 0.7,
-        max_tokens: Math.min(request.maxTokens || 2048, model.maxTokens),
-        stream: false
-      })
-    })
 
-    if (!response.ok) {
-      const errorData = await response.text()
-      throw new Error(`OpenRouter API error: ${response.status} ${errorData}`)
-    }
-
-    const data = await response.json()
-    
-    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-      throw new Error('Invalid response format from OpenRouter')
-    }
-
-    return {
-      content: data.choices[0].message.content,
-      usage: data.usage ? {
-        promptTokens: data.usage.prompt_tokens,
-        completionTokens: data.usage.completion_tokens,
-        totalTokens: data.usage.total_tokens
-      } : undefined,
-      model: model.id,
-      provider: 'openrouter'
-    }
-  }
 
   private async generateGoogle(request: GenerationRequest, model: AIModel): Promise<GenerationResponse> {
     // Convert messages to Google's format
@@ -268,6 +205,14 @@ export class AIProviderClient {
       contents[0].parts[0].text = `${systemMessage.content}\n\n${contents[0].parts[0].text}`
     }
 
+    // Optimize generation config for better quality
+    const generationConfig = {
+      temperature: request.temperature || 0.7,
+      maxOutputTokens: Math.min(request.maxTokens || 4096, model.maxTokens),
+      topP: 0.95, // Nucleus sampling for more coherent output
+      topK: 40,   // Top-k sampling for quality control
+    }
+
     const response = await fetch(
       `${this.provider.baseURL}/models/${model.modelId}:generateContent?key=${this.apiKey}`,
       {
@@ -277,10 +222,7 @@ export class AIProviderClient {
         },
         body: JSON.stringify({
           contents,
-          generationConfig: {
-            temperature: request.temperature || 0.7,
-            maxOutputTokens: Math.min(request.maxTokens || 2048, model.maxTokens)
-          }
+          generationConfig
         })
       }
     )
@@ -308,63 +250,29 @@ export class AIProviderClient {
     }
   }
 
-  private async generateTogether(request: GenerationRequest, model: AIModel): Promise<GenerationResponse> {
-    const response = await fetch(`${this.provider.baseURL}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${this.apiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: model.modelId,
-        messages: request.messages,
-        temperature: request.temperature || 0.7,
-        max_tokens: Math.min(request.maxTokens || 2048, model.maxTokens),
-        stream: false
-      })
-    })
 
-    if (!response.ok) {
-      const errorData = await response.text()
-      throw new Error(`Together.ai API error: ${response.status} ${errorData}`)
-    }
-
-    const data = await response.json()
-    
-    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-      throw new Error('Invalid response format from Together.ai')
-    }
-
-    return {
-      content: data.choices[0].message.content,
-      usage: data.usage ? {
-        promptTokens: data.usage.prompt_tokens,
-        completionTokens: data.usage.completion_tokens,
-        totalTokens: data.usage.total_tokens
-      } : undefined,
-      model: model.id,
-      provider: 'together'
-    }
-  }
 
   private async generateBaseten(request: GenerationRequest, model: AIModel): Promise<GenerationResponse> {
+    // Optimize parameters for Baseten's GPT OSS model
+    const optimizedConfig = {
+      model: model.modelId,
+      messages: request.messages,
+      temperature: request.temperature || 0.8, // Slightly higher for creativity
+      max_tokens: Math.min(request.maxTokens || 2048, model.maxTokens),
+      top_p: 0.9,        // Nucleus sampling for quality
+      presence_penalty: 0.6,  // Encourage diverse content
+      frequency_penalty: 0.3, // Reduce repetition
+      stop: [],
+      stream: false
+    }
+
     const response = await fetch(`${this.provider.baseURL}/chat/completions`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${this.apiKey}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        model: model.modelId,
-        messages: request.messages,
-        temperature: request.temperature || 1,
-        max_tokens: Math.min(request.maxTokens || 1000, model.maxTokens),
-        top_p: 1,
-        presence_penalty: 0,
-        frequency_penalty: 0,
-        stop: [],
-        stream: false
-      })
+      body: JSON.stringify(optimizedConfig)
     })
 
     if (!response.ok) {
@@ -389,6 +297,51 @@ export class AIProviderClient {
       provider: 'baseten'
     }
   }
+
+  private async generateDeepSeek(request: GenerationRequest, model: AIModel): Promise<GenerationResponse> {
+    // Optimize parameters for DeepSeek's advanced reasoning capabilities
+    const optimizedConfig = {
+      model: model.modelId,
+      messages: request.messages,
+      temperature: request.temperature || 0.7,
+      max_tokens: Math.min(request.maxTokens || 4096, model.maxTokens),
+      top_p: 0.95,       // High quality nucleus sampling
+      frequency_penalty: 0.2, // Slight penalty to reduce repetition
+      presence_penalty: 0.1,  // Encourage topic exploration
+      stream: false
+    }
+
+    const response = await fetch(`${this.provider.baseURL}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${this.apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(optimizedConfig)
+    })
+
+    if (!response.ok) {
+      const errorData = await response.text()
+      throw new Error(`DeepSeek API error: ${response.status} ${errorData}`)
+    }
+
+    const data = await response.json()
+    
+    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+      throw new Error('Invalid response format from DeepSeek')
+    }
+
+    return {
+      content: data.choices[0].message.content,
+      usage: data.usage ? {
+        promptTokens: data.usage.prompt_tokens,
+        completionTokens: data.usage.completion_tokens,
+        totalTokens: data.usage.total_tokens
+      } : undefined,
+      model: model.id,
+      provider: 'deepseek'
+    }
+  }
 }
 
 // Factory function to create provider clients
@@ -411,9 +364,9 @@ export function getBestModelForTier(userTier: 'free' | 'pro', preferredProvider?
     }
   }
   
-  // Default to Gemini 2.0 Flash first (free and fast), then fallback to others
+  // Default to Gemini 2.5 Flash (free), then Baseten GPT OSS 120B (pro), then DeepSeek Chat (pro)
   return availableModels.find(m => m.id === 'gemini-2-flash') 
-    || availableModels.find(m => m.id === 'llama-3-3-70b-free') 
-    || availableModels.find(m => m.id === 'qwen-72b') 
+    || availableModels.find(m => m.id === 'gpt-oss-120b') 
+    || availableModels.find(m => m.id === 'deepseek-chat') 
     || availableModels[0]
 }

@@ -52,8 +52,8 @@ export function AIProviderSelector({
       const model = models.find(m => m.id === selectedModel)
       setCurrentModel(model)
     } else {
-      // Set default model
-      const defaultModel = models.find(m => m.id === 'qwen-72b') || models[0]
+      // Set default model to Gemini 2.5 Flash
+      const defaultModel = models.find(m => m.id === 'gemini-2-flash') || models[0]
       setCurrentModel(defaultModel)
       onModelSelect?.(defaultModel?.id)
     }
@@ -67,12 +67,12 @@ export function AIProviderSelector({
 
   const getProviderIcon = (provider: string) => {
     switch (provider) {
-      case 'openrouter':
-        return '🔀'
       case 'google':
-        return '🟡'
-      case 'together':
-        return '🤝'
+        return '�'
+      case 'baseten':
+        return '�'
+      case 'deepseek':
+        return '🚀'
       default:
         return '🤖'
     }

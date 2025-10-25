@@ -56,7 +56,9 @@ export async function signOut() {
 }
 export async function getCurrentUser(): Promise<User | null> {
   try {
+    console.log('🔍 getCurrentUser: Calling account.get()...')
     const user = await account.get()
+    console.log('✅ getCurrentUser: Success!', { id: user.$id, email: user.email })
     return {
       id: user.$id,
       email: user.email,
@@ -65,6 +67,16 @@ export async function getCurrentUser(): Promise<User | null> {
       createdAt: user.$createdAt,
       updatedAt: user.$updatedAt,
     }
+  } catch (error: any) {
+    console.log('❌ getCurrentUser: Failed', { code: error?.code, message: error?.message })
+    return null
+  }
+}
+
+export async function getCurrentUserId(request?: Request): Promise<string | null> {
+  try {
+    const user = await getCurrentUser()
+    return user?.id || null
   } catch (error) {
     return null
   }

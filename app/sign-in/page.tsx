@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Loader2, Mail, Lock, Eye, EyeOff } from 'lucide-react'
+import { signIn } from '@/lib/auth'
 
 export default function SignInPage() {
   const [email, setEmail] = useState('')
@@ -24,25 +25,26 @@ export default function SignInPage() {
     setError('')
 
     try {
-      const response = await fetch('/api/auth/sign-in', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      })
+      console.log('🔐 Attempting sign in...')
+      
+      // Use client-side signIn function directly (creates session in browser)
+      const result = await signIn(email, password)
 
-      const data = await response.json()
-
-      if (response.ok) {
-        // Redirect to dashboard or the page they were trying to access
-        const searchParams = new URLSearchParams(window.location.search)
-        const redirect = searchParams.get('redirect') || '/dashboard'
-        router.push(redirect)
+      if (result.success) {
+        console.log('✅ Sign in successful, session created in browser')
+        console.log('🔄 Redirecting to dashboard...')
+        
+        // Wait a bit for session to be fully established
+        await new Promise(resolve => setTimeout(resolve, 500))
+        
+        // Force page reload to refresh auth context
+        window.location.href = '/dashboard'
       } else {
-        setError(data.error || 'Sign in failed')
+        console.error('❌ Sign in failed:', result.error)
+        setError(result.error || 'Sign in failed. Please check your credentials.')
       }
     } catch (error) {
+      console.error('❌ Sign in error:', error)
       setError('Network error. Please try again.')
     } finally {
       setLoading(false)

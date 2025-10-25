@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
       topic, 
       tone = "professional", 
       length = "medium",
-      provider = "openai",
+      provider = "google",
       modelName,
       // Research options
       includeWebSearch = false,
@@ -85,13 +85,12 @@ export async function POST(request: NextRequest) {
       modelName,
       apiKey: provider === 'google' ? process.env.GOOGLE_AI_API_KEY : 
                provider === 'baseten' ? process.env.BASETEN_API_KEY :
-               process.env.OPENROUTER_API_KEY,
+               process.env.DEEPSEEK_API_KEY,
       tone,
       length,
       includeInteractiveElements,
       addUniqueEnhancements,
-      generateAdvancedMetadata,
-      researchData // Pass research data to the blog generator
+      generateAdvancedMetadata
     });
 
     console.log(`✅ Next-level blog generated successfully: ${result?.article?.length || 0} characters`);

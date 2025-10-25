@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Loader2, Mail, Lock, User, Eye, EyeOff, CheckCircle2 } from 'lucide-react'
+import { signUp } from '@/lib/auth'
 
 export default function SignUpPage() {
   const [formData, setFormData] = useState({
@@ -70,28 +71,29 @@ export default function SignUpPage() {
     }
 
     try {
-      const response = await fetch('/api/auth/sign-up', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: formData.email,
-          password: formData.password,
-          firstName: formData.firstName,
-          lastName: formData.lastName
-        }),
-      })
+      console.log('🔐 Attempting sign up...')
+      
+      // Combine first and last name
+      const fullName = `${formData.firstName} ${formData.lastName}`.trim()
+      
+      // Use client-side signUp function directly (creates user AND session in browser)
+      const result = await signUp(formData.email, formData.password, fullName)
 
-      const data = await response.json()
-
-      if (response.ok) {
-        // Redirect to dashboard
-        router.push('/dashboard')
+      if (result.success) {
+        console.log('✅ Sign up successful, session created in browser')
+        console.log('🔄 Redirecting to dashboard...')
+        
+        // Wait a bit for session to be fully established
+        await new Promise(resolve => setTimeout(resolve, 500))
+        
+        // Force page reload to refresh auth context
+        window.location.href = '/dashboard'
       } else {
-        setError(data.error || 'Sign up failed')
+        console.error('❌ Sign up failed:', result.error)
+        setError(result.error || 'Sign up failed. Please try again.')
       }
     } catch (error) {
+      console.error('❌ Sign up error:', error)
       setError('Network error. Please try again.')
     } finally {
       setLoading(false)

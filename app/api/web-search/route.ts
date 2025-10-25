@@ -1,15 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getCurrentUserId } from '@/lib/auth'
 
 export async function POST(req: NextRequest) {
   try {
-    const userId = await getCurrentUserId(req)
+    const { query, maxResults = 10, userId } = await req.json()
     
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: 'User ID required' }, { status: 400 })
     }
-    
-    const { query, maxResults = 10 } = await req.json()
     
     if (!query || typeof query !== 'string') {
       return NextResponse.json({ error: 'Query is required' }, { status: 400 })

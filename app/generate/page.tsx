@@ -37,20 +37,10 @@ import Link from "next/link"
 import { getAvailableModels, AI_MODELS, getModelById } from "@/lib/ai-providers"
 
 const AI_MODEL_NAMES = [
-  "GPT-4",
-  "GPT-4 Turbo", 
-  "Claude 3.5 Sonnet",
-  "Claude 3 Opus",
-  "Claude 3 Haiku",
-  "Gemini Pro",
-  "Gemini Ultra", 
-  "LLaMA 3.1 405B",
-  "LLaMA 3.1 70B",
-  "Qwen 2.5 72B Instruct",
-  "DeepSeek V2.5",
-  "Mistral Large",
-  "Command R+",
-  "Perplexity Sonar"
+  "Gemini 2.5 Flash",
+  "GPT OSS 120B",
+  "DeepSeek Chat",
+  "DeepSeek Coder"
 ]
 
 const USE_CASES = [
