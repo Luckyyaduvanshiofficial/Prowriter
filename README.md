@@ -1,48 +1,40 @@
 # Prowriter AI - Premium AI Content Generation Platform
 
-🚀 **Enhanced with Neon Database & Auth Integration**
+🚀 **Now powered by Appwrite - No database setup required!**
 
-Prowriter AI is a modern, full-featured content generation platform powered by cutting-edge AI technology. This version has been completely updated to use Neon's high-performance PostgreSQL database and authentication system for a unified, scalable solution.
+Prowriter AI is a modern, full-featured content generation platform powered by cutting-edge AI technology. This version has been completely updated to use Appwrite's BaaS platform for a unified, scalable, and easy-to-setup solution.
 
 ## ✨ Key Features
 
-### 🎯 **Neon Integration**
-- **Neon PostgreSQL**: High-performance, serverless database with branching
-- **Neon Auth**: Secure authentication with JWT tokens and session management
-- **Enterprise-grade reliability**: 99.9% uptime and automatic scaling
-- **Lightning fast**: Generate 3000+ word articles in under 2 minutes
-- **Advanced parameters**: Full control over creativity, temperature, and output quality
+### 🔐 **Appwrite Integration**
+- **Appwrite BaaS**: Complete backend-as-a-service with zero setup
+- **Built-in Authentication**: Secure email/password authentication
+- **Managed Database**: Cloud PostgreSQL with visual dashboard
+- **Enterprise-grade**: 99.9% uptime and automatic scaling
+- **5-minute setup**: No database management or complex configuration
 
-### 🔐 **Modern Authentication**
-- **Custom Auth System**: Built on Neon database with secure password hashing
-- **JWT Sessions**: Secure, stateless authentication tokens
-- **Professional UI**: Beautiful sign-in/sign-up pages with form validation
-- **Password Security**: Strong password requirements and bcrypt hashing
-- **Role-based access**: Free and Pro tier management
-
-### 📝 **Advanced Content Generation**
-- **Multiple content types**: Articles, how-to guides, comparisons, listicles
-- **SEO optimization**: Built-in keyword research and content optimization
-- **Professional templates**: Industry-specific content templates
-- **Real-time generation**: Live progress tracking and status updates
-- **Content management**: Save, edit, and organize your generated articles
+### � **Content Generation** (Add AI libraries when needed)
+- Multiple content types: Articles, how-to guides, comparisons, listicles
+- SEO optimization capabilities
+- Professional templates
+- Real-time generation tracking
+- Content management system
 
 ### 💼 **Professional UI/UX**
 - **Modern design**: Clean, responsive interface built with Tailwind CSS
 - **Mobile-first**: Fully responsive design for all devices
 - **Dark/light themes**: Automatic theme switching
-- **Accessibility**: WCAG 2.1 compliant interface
+- **Radix UI**: High-quality, accessible components
 - **Form validation**: Real-time validation with helpful error messages
 
 ## 🛠️ Technology Stack
 
 - **Frontend**: Next.js 15, React 19, TypeScript
-- **Database**: Neon PostgreSQL (serverless)
-- **Authentication**: Custom JWT-based auth system
+- **Backend**: Appwrite (BaaS)
+- **Authentication**: Appwrite Auth
+- **Database**: Appwrite Database (PostgreSQL)
 - **UI Library**: Radix UI components with Tailwind CSS
-- **AI Integration**: OpenAI, Google Generative AI, Together AI
 - **State Management**: React hooks and context
-- **Password Security**: bcryptjs for hashing
 - **Deployment**: Vercel-ready configuration
 
 ## 🚀 Quick Start
@@ -50,8 +42,7 @@ Prowriter AI is a modern, full-featured content generation platform powered by c
 ### Prerequisites
 - Node.js 18+ 
 - npm or pnpm
-- Neon account (free tier available)
-- AI provider API keys (OpenAI, Google AI, etc.)
+- Appwrite account (free tier available)
 
 ### Installation
 
@@ -63,33 +54,37 @@ Prowriter AI is a modern, full-featured content generation platform powered by c
 
 2. **Install dependencies**
    ```bash
-   npm install --legacy-peer-deps
+   npm install
    ```
 
-3. **Set up Neon Database**
-   - Sign up at [Neon.tech](https://neon.tech)
+3. **Set up Appwrite** (5 minutes)
+   
+   See detailed guide in [APPWRITE_SETUP.md](./APPWRITE_SETUP.md)
+   
+   Quick version:
+   - Create account at [cloud.appwrite.io](https://cloud.appwrite.io)
    - Create a new project
-   - Copy your connection string
-   - Run the schema file in Neon Console:
-     ```sql
-     -- Copy and paste the contents of neon-schema.sql
-     ```
+   - Create database `prowriter_db`
+   - Create collections: `users` and `articles`
+   - Copy your Project ID and API Key
 
 4. **Configure environment variables**
-   Create a `.env.local` file:
+   
+   Copy `.env.example` to `.env.local` and update:
    ```env
-   # Neon Database
-   DATABASE_URL=your_neon_connection_string_here
+   # Appwrite
+   NEXT_PUBLIC_APPWRITE_ENDPOINT=https://cloud.appwrite.io/v1
+   NEXT_PUBLIC_APPWRITE_PROJECT_ID=your_project_id_here
+   APPWRITE_API_KEY=your_api_key_here
    
-   # Authentication
-   JWT_SECRET=your_super_secret_jwt_key_here
+   # Database IDs
+   NEXT_PUBLIC_APPWRITE_DATABASE_ID=prowriter_db
+   NEXT_PUBLIC_APPWRITE_USERS_COLLECTION_ID=users
+   NEXT_PUBLIC_APPWRITE_ARTICLES_COLLECTION_ID=articles
    
-   # AI Providers
-   OPENAI_API_KEY=your_openai_api_key_here
-   GOOGLE_API_KEY=your_google_api_key_here
-   
-   # Site Configuration
-   NEXT_PUBLIC_SITE_URL=http://localhost:3000
+   # Optional: AI Providers (install packages first)
+   # OPENAI_API_KEY=your_key
+   # GOOGLE_API_KEY=your_key
    ```
 
 5. **Start development server**
@@ -98,6 +93,107 @@ Prowriter AI is a modern, full-featured content generation platform powered by c
    ```
 
 6. **Open in browser**
+   ```
+   http://localhost:3000
+   ```
+
+## 📚 Documentation
+
+- **[QUICK_START.md](./QUICK_START.md)** - Fast setup guide
+- **[APPWRITE_SETUP.md](./APPWRITE_SETUP.md)** - Complete Appwrite setup with screenshots
+- **[MIGRATION_SUMMARY.md](./MIGRATION_SUMMARY.md)** - What changed from previous version
+- **[REMOVED_DEPENDENCIES.md](./REMOVED_DEPENDENCIES.md)** - Optional packages to install later
+
+## 🎨 Adding Features
+
+The app is now minimal and focused. Add features as needed:
+
+### AI Content Generation
+```bash
+npm install @ai-sdk/openai @google/generative-ai langchain
+```
+
+### Web Scraping & Research
+```bash
+npm install cheerio axios puppeteer
+```
+
+### Additional UI Components
+```bash
+npm install @radix-ui/react-tabs @radix-ui/react-accordion
+```
+
+See [REMOVED_DEPENDENCIES.md](./REMOVED_DEPENDENCIES.md) for the complete list.
+
+## 🔐 Authentication
+
+Appwrite provides built-in authentication:
+
+- ✅ Email/Password sign up
+- ✅ Email/Password sign in  
+- ✅ Session management
+- ✅ Password reset
+- ✅ Email verification
+- ✅ OAuth providers (Google, GitHub, etc.) - Easy to add
+
+## 📊 Database
+
+Appwrite Database features:
+
+- ✅ Visual dashboard
+- ✅ Real-time updates
+- ✅ Relationships
+- ✅ Full-text search
+- ✅ File storage
+- ✅ Automatic backups
+
+## 🚀 Deployment
+
+### Deploy to Vercel
+
+```bash
+# Install Vercel CLI
+npm i -g vercel
+
+# Deploy
+vercel
+```
+
+Add your environment variables in Vercel dashboard.
+
+### Deploy to Other Platforms
+
+Works with any Node.js hosting:
+- Netlify
+- Railway
+- Render
+- AWS
+- Google Cloud
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## 📄 License
+
+This project is open source and available under the MIT License.
+
+## 🙏 Credits
+
+- [Appwrite](https://appwrite.io) - Backend-as-a-Service
+- [Next.js](https://nextjs.org) - React Framework
+- [Tailwind CSS](https://tailwindcss.com) - Styling
+- [Radix UI](https://radix-ui.com) - UI Components
+
+## 📞 Support
+
+- Check [APPWRITE_SETUP.md](./APPWRITE_SETUP.md) for troubleshooting
+- Visit [Appwrite Documentation](https://appwrite.io/docs)
+- Join [Appwrite Discord](https://appwrite.io/discord)
+
+---
+
+**Built with ❤️ using Appwrite**
    Navigate to `http://localhost:3000`
 
 ## 🔧 Configuration

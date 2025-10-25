@@ -1,320 +1,94 @@
-import jwt from 'jsonwebtoken'
-import bcrypt from 'bcryptjs'
-import { NextRequest } from 'next/server'
-import { DatabaseQueries } from './neon'
-
-// Ensure JWT secret is available
-const JWT_SECRET = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET
-
-if (!JWT_SECRET) {
-  throw new Error('JWT_SECRET or NEXTAUTH_SECRET environment variable is required')
-}
-
+import { account, serverDatabases, DATABASE_ID, COLLECTIONS } from './appwrite'
+import { ID, Query } from 'appwrite'
 export interface User {
   id: string
   email: string
-  firstName?: string | null
-  lastName?: string | null
-  fullName?: string
+  name?: string
   emailVerified: boolean
   createdAt: string
   updatedAt: string
 }
-
-export interface UserWithProfile extends User {
-  profile: {
-    plan: 'free' | 'pro' | 'admin'
-    articlesGeneratedToday: number
-    lastGenerationDate?: string | null
-    subscriptionId?: string | null
-    subscriptionStatus: 'active' | 'inactive' | 'cancelled' | 'past_due'
-  }
-}
-
-export interface AuthTokenPayload {
-  userId: string
-  email: string
-  iat?: number
-  exp?: number
-}
-
-/**
- * Hash a password using bcrypt
- */
-export async function hashPassword(password: string): Promise<string> {
-  const saltRounds = 12
-  return bcrypt.hash(password, saltRounds)
-}
-
-/**
- * Verify a password against a hash
- */
-export async function verifyPassword(password: string, hash: string): Promise<boolean> {
-  return bcrypt.compare(password, hash)
-}
-
-/**
- * Generate a JWT token for a user
- */
-export function generateToken(userId: string, email: string): string {
-  const payload: AuthTokenPayload = {
-    userId,
-    email
-  }
-  
-  return jwt.sign(payload, JWT_SECRET, {
-    expiresIn: '7d' // Token expires in 7 days
-  })
-}
-
-/**
- * Verify and decode a JWT token
- */
-export function verifyToken(token: string): AuthTokenPayload | null {
+export async function signUp(email: string, password: string, name?: string) {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as AuthTokenPayload
-    return decoded
-  } catch (error) {
-    console.error('Token verification failed:', error)
-    return null
+    const user = await account.create(ID.unique(), email, password, name)
+    await account.createEmailPasswordSession(email, password)
+    await createUserProfile(user., email, name)
+    return { success: true, user }
+  } catch (error: any) {
+    return { success: false, error: error.message }
   }
 }
-
-/**
- * Get the current user from request headers
- */
-export async function getCurrentUser(request: NextRequest): Promise<User | null> {
+export async function signIn(email: string, password: string) {
   try {
-    // Check for Authorization header
-    const authHeader = request.headers.get('authorization')
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      const token = authHeader.substring(7)
-      const payload = verifyToken(token)
-      
-      if (payload) {
-        const user = await DatabaseQueries.getUserById(payload.userId)
-        if (user) {
-          return {
-            id: user.id,
-            email: user.email,
-            firstName: user.first_name,
-            lastName: user.last_name,
-            fullName: user.first_name && user.last_name ? `${user.first_name} ${user.last_name}` : null,
-            emailVerified: user.email_verified,
-            createdAt: user.created_at,
-            updatedAt: user.updated_at
-          }
-        }
-      }
-    }
-    
-    // Check for session cookie
-    const sessionToken = request.cookies.get('session-token')?.value
-    if (sessionToken) {
-      const payload = verifyToken(sessionToken)
-      
-      if (payload) {
-        const user = await DatabaseQueries.getUserById(payload.userId)
-        if (user) {
-          return {
-            id: user.id,
-            email: user.email,
-            firstName: user.first_name,
-            lastName: user.last_name,
-            fullName: user.first_name && user.last_name ? `${user.first_name} ${user.last_name}` : null,
-            emailVerified: user.email_verified,
-            createdAt: user.created_at,
-            updatedAt: user.updated_at
-          }
-        }
-      }
-    }
-    
-    return null
-  } catch (error) {
-    console.error('Error getting current user:', error)
-    return null
+    const session = await account.createEmailPasswordSession(email, password)
+    return { success: true, session }
+  } catch (error: any) {
+    return { success: false, error: error.message }
   }
 }
-
-/**
- * Get current user ID from request
- */
-export async function getCurrentUserId(request: NextRequest): Promise<string | null> {
-  const user = await getCurrentUser(request)
-  return user?.id || null
-}
-
-/**
- * Get user with profile information
- */
-export async function getCurrentUserWithProfile(request: NextRequest): Promise<UserWithProfile | null> {
+export async function signOut() {
   try {
-    const user = await getCurrentUser(request)
-    if (!user) return null
-    
-    const profile = await DatabaseQueries.getUserProfile(user.id)
-    if (!profile) return null
-    
+    await account.deleteSession('current')
+    return { success: true }
+  } catch (error: any) {
+    return { success: false, error: error.message }
+  }
+}
+export async function getCurrentUser(): Promise<User | null> {
+  try {
+    const user = await account.get()
     return {
-      ...user,
-      profile: {
-        plan: profile.plan,
-        articlesGeneratedToday: profile.articles_generated_today,
-        lastGenerationDate: profile.last_generation_date,
-        subscriptionId: profile.subscription_id,
-        subscriptionStatus: profile.subscription_status
-      }
+      id: user.,
+      email: user.email,
+      name: user.name,
+      emailVerified: user.emailVerification,
+      createdAt: user.,
+      updatedAt: user.,
     }
   } catch (error) {
-    console.error('Error getting user with profile:', error)
     return null
   }
 }
-
-/**
- * Check if user is authenticated
- */
-export async function isAuthenticated(request: NextRequest): Promise<boolean> {
-  const user = await getCurrentUser(request)
-  return !!user
-}
-
-/**
- * Register a new user
- */
-export async function registerUser(
-  email: string, 
-  password: string, 
-  firstName?: string, 
-  lastName?: string
-): Promise<{ user: User; token: string } | { error: string }> {
+async function createUserProfile(userId: string, email: string, name?: string) {
   try {
-    // Check if user already exists
-    const existingUser = await DatabaseQueries.getUserByEmail(email)
-    if (existingUser) {
-      return { error: 'User already exists with this email' }
-    }
-    
-    // Hash password
-    const passwordHash = await hashPassword(password)
-    
-    // Create user
-    const userId = await DatabaseQueries.createUser(email, passwordHash, firstName, lastName)
-    
-    // Get the created user
-    const user = await DatabaseQueries.getUserById(userId)
-    if (!user) {
-      return { error: 'Failed to create user' }
-    }
-    
-    // Generate token
-    const token = generateToken(userId, email)
-    
-    return {
-      user: {
-        id: user.id,
-        email: user.email,
-        firstName: user.first_name,
-        lastName: user.last_name,
-        fullName: user.first_name && user.last_name ? `${user.first_name} ${user.last_name}` : null,
-        emailVerified: user.email_verified,
-        createdAt: user.created_at,
-        updatedAt: user.updated_at
-      },
-      token
-    }
-  } catch (error) {
-    console.error('Error registering user:', error)
-    return { error: 'Failed to register user' }
-  }
-}
-
-/**
- * Sign in a user
- */
-export async function signInUser(
-  email: string, 
-  password: string
-): Promise<{ user: User; token: string } | { error: string }> {
-  try {
-    // Get user by email
-    const user = await DatabaseQueries.getUserByEmail(email)
-    if (!user) {
-      return { error: 'Invalid email or password' }
-    }
-    
-    // Verify password
-    const isValidPassword = await verifyPassword(password, user.password_hash)
-    if (!isValidPassword) {
-      return { error: 'Invalid email or password' }
-    }
-    
-    // Generate token
-    const token = generateToken(user.id, user.email)
-    
-    return {
-      user: {
-        id: user.id,
-        email: user.email,
-        firstName: user.first_name,
-        lastName: user.last_name,
-        fullName: user.first_name && user.last_name ? `${user.first_name} ${user.last_name}` : null,
-        emailVerified: user.email_verified,
-        createdAt: user.created_at,
-        updatedAt: user.updated_at
-      },
-      token
-    }
-  } catch (error) {
-    console.error('Error signing in user:', error)
-    return { error: 'Failed to sign in' }
-  }
-}
-
-/**
- * Middleware helper to protect routes
- */
-export async function requireAuth(request: NextRequest): Promise<User | Response> {
-  const user = await getCurrentUser(request)
-  
-  if (!user) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-      status: 401,
-      headers: { 'Content-Type': 'application/json' }
+    await serverDatabases.createDocument(DATABASE_ID, COLLECTIONS.USERS, ID.unique(), {
+      userId,
+      email,
+      name: name || '',
+      plan: 'free',
+      articlesGeneratedToday: 0,
+      subscriptionStatus: 'inactive',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     })
+  } catch (error) {
+    console.error('Create profile error:', error)
   }
-  
-  return user
 }
-
-/**
- * Validate email format
- */
-export function isValidEmail(email: string): boolean {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-  return emailRegex.test(email)
+export async function getUserProfile(userId: string) {
+  try {
+    const response = await serverDatabases.listDocuments(
+      DATABASE_ID,
+      COLLECTIONS.USERS,
+      [Query.equal('userId', userId)]
+    )
+    return response.documents.length > 0 ? response.documents[0] : null
+  } catch (error) {
+    return null
+  }
 }
-
-/**
- * Validate password strength
- */
-export function isValidPassword(password: string): { valid: boolean; message?: string } {
-  if (password.length < 8) {
-    return { valid: false, message: 'Password must be at least 8 characters long' }
+export async function updateUserProfile(userId: string, data: any) {
+  try {
+    const profile = await getUserProfile(userId)
+    if (!profile) return { success: false, error: 'Profile not found' }
+    await serverDatabases.updateDocument(
+      DATABASE_ID,
+      COLLECTIONS.USERS,
+      profile.,
+      { ...data, updatedAt: new Date().toISOString() }
+    )
+    return { success: true }
+  } catch (error: any) {
+    return { success: false, error: error.message }
   }
-  
-  if (!/(?=.*[a-z])/.test(password)) {
-    return { valid: false, message: 'Password must contain at least one lowercase letter' }
-  }
-  
-  if (!/(?=.*[A-Z])/.test(password)) {
-    return { valid: false, message: 'Password must contain at least one uppercase letter' }
-  }
-  
-  if (!/(?=.*\d)/.test(password)) {
-    return { valid: false, message: 'Password must contain at least one number' }
-  }
-  
-  return { valid: true }
 }
