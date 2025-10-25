@@ -1,33 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getCurrentUserId, getCurrentUserWithProfile } from '@/lib/auth'
+import { getCurrentUser, getUserProfile, updateUserProfile } from '@/lib/auth'
 
 export async function GET(req: NextRequest) {
   try {
-    const userWithProfile = await getCurrentUserWithProfile(req)
+    const user = await getCurrentUser()
     
-    if (!userWithProfile) {
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
     
-    // In a real app, you'd fetch from your database
-    // For now, we'll return dynamic data based on the user ID and time
-    const today = new Date().toDateString()
-    const userIdHash = userId.split('_')[1] || '0'
-    const dailyUsage = Math.floor(Math.random() * 3) + 1 // Simulate realistic usage
+    // Get user profile from database
+    const profile = await getUserProfile(user.id)
     
-    const profile = {
-      id: userId,
-      plan: 'free', // This could be fetched from user metadata or database
-      articles_generated_today: dailyUsage,
-      articles_limit: 5,
-      total_articles: Math.floor(Math.random() * 15) + 5,
-      articles_this_week: Math.floor(Math.random() * 10) + dailyUsage,
-      articles_this_month: Math.floor(Math.random() * 30) + dailyUsage,
-      created_at: new Date().toISOString(),
-      last_article_generated: new Date(Date.now() - Math.random() * 86400000).toISOString()
+    if (!profile) {
+      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
     }
     
-    return NextResponse.json({ profile })
+    // Return profile data
+    return NextResponse.json({ 
+      profile: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        plan: profile.plan,
+        articles_generated_today: profile.articlesGeneratedToday,
+        articles_limit: profile.plan === 'pro' ? 25 : profile.plan === 'admin' ? 999 : 5,
+        subscription_status: profile.subscriptionStatus,
+        created_at: profile.createdAt,
+        updated_at: profile.updatedAt,
+        last_generation_date: profile.lastGenerationDate
+      }
+    })
   } catch (error) {
     console.error('Error fetching user profile:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
@@ -36,26 +39,34 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId } = await auth()
+    const user = await getCurrentUser()
     
-    if (!userId) {
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
     
-    const { plan, articles_generated_today } = await req.json()
+    const data = await req.json()
     
-    // In a real app, you'd update your database
-    // For now, we'll just return the updated data
-    const updatedProfile = {
-      id: userId,
-      plan: plan || 'free',
-      articles_generated_today: articles_generated_today || 0,
-      articles_limit: plan === 'pro' ? 25 : 5,
-      total_articles: Math.floor(Math.random() * 20) + 5,
-      updated_at: new Date().toISOString()
+    // Update user profile in database
+    const result = await updateUserProfile(user.id, data)
+    
+    if (!result.success) {
+      return NextResponse.json({ error: result.error }, { status: 400 })
     }
     
-    return NextResponse.json({ profile: updatedProfile })
+    // Get updated profile
+    const profile = await getUserProfile(user.id)
+    
+    return NextResponse.json({ 
+      profile: {
+        id: user.id,
+        plan: profile?.plan,
+        articles_generated_today: profile?.articlesGeneratedToday,
+        articles_limit: profile?.plan === 'pro' ? 25 : 5,
+        subscription_status: profile?.subscriptionStatus,
+        updated_at: profile?.updatedAt
+      }
+    })
   } catch (error) {
     console.error('Error updating user profile:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

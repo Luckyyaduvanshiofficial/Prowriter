@@ -10,12 +10,25 @@ export interface User {
 }
 export async function signUp(email: string, password: string, name?: string) {
   try {
+    // Check if user already exists by trying to create account
     const user = await account.create(ID.unique(), email, password, name)
+    
+    // Create session
     await account.createEmailPasswordSession(email, password)
+    
+    // Create user profile (with error handling for duplicates)
     await createUserProfile(user.$id, email, name)
+    
     return { success: true, user }
   } catch (error: any) {
-    return { success: false, error: error.message }
+    // Handle specific Appwrite errors
+    if (error.code === 409) {
+      return { success: false, error: 'An account with this email already exists' }
+    }
+    if (error.code === 429) {
+      return { success: false, error: 'Too many requests. Please wait a moment and try again.' }
+    }
+    return { success: false, error: error.message || 'Failed to create account' }
   }
 }
 export async function signIn(email: string, password: string) {
@@ -23,7 +36,14 @@ export async function signIn(email: string, password: string) {
     const session = await account.createEmailPasswordSession(email, password)
     return { success: true, session }
   } catch (error: any) {
-    return { success: false, error: error.message }
+    // Handle specific Appwrite errors
+    if (error.code === 401) {
+      return { success: false, error: 'Invalid email or password' }
+    }
+    if (error.code === 429) {
+      return { success: false, error: 'Too many login attempts. Please wait a moment and try again.' }
+    }
+    return { success: false, error: error.message || 'Failed to sign in' }
   }
 }
 export async function signOut() {
@@ -51,6 +71,13 @@ export async function getCurrentUser(): Promise<User | null> {
 }
 async function createUserProfile(userId: string, email: string, name?: string) {
   try {
+    // Check if profile already exists to avoid duplicates
+    const existing = await getUserProfile(userId)
+    if (existing) {
+      console.log('Profile already exists for user:', userId)
+      return
+    }
+    
     await serverDatabases.createDocument(DATABASE_ID, COLLECTIONS.USERS, ID.unique(), {
       userId,
       email,
@@ -61,8 +88,11 @@ async function createUserProfile(userId: string, email: string, name?: string) {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     })
-  } catch (error) {
-    console.error('Create profile error:', error)
+  } catch (error: any) {
+    // Only log if it's not a duplicate error
+    if (error.code !== 409) {
+      console.error('Create profile error:', error)
+    }
   }
 }
 export async function getUserProfile(userId: string) {

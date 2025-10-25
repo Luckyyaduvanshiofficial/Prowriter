@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { registerUser, isValidEmail, isValidPassword } from '@/lib/auth'
+import { signUp } from '@/lib/auth'
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { email, password, firstName, lastName } = body
+    const { email, password, name, firstName, lastName } = body
 
     // Validate input
     if (!email || !password) {
@@ -14,44 +14,49 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (!isValidEmail(email)) {
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
       return NextResponse.json(
         { error: 'Invalid email format' },
         { status: 400 }
       )
     }
 
-    const passwordValidation = isValidPassword(password)
-    if (!passwordValidation.valid) {
+    // Basic password validation
+    if (password.length < 8) {
       return NextResponse.json(
-        { error: passwordValidation.message },
+        { error: 'Password must be at least 8 characters long' },
         { status: 400 }
       )
     }
 
-    // Attempt to register user
-    const result = await registerUser(email, password, firstName, lastName)
+    // Combine name fields if provided
+    const fullName = name || [firstName, lastName].filter(Boolean).join(' ').trim() || undefined
 
-    if ('error' in result) {
+    // Attempt to register user with Appwrite
+    const result = await signUp(email, password, fullName)
+
+    if (!result.success) {
+      // Handle rate limit specifically
+      if (result.error?.includes('Too many requests') || result.error?.includes('Rate limit')) {
+        return NextResponse.json(
+          { error: 'Too many sign-up attempts. Please wait a few minutes and try again.' },
+          { status: 429 }
+        )
+      }
+      
       return NextResponse.json(
-        { error: result.error },
+        { error: result.error || 'Failed to create account' },
         { status: 400 }
       )
     }
 
-    // Create response with token in cookie
+    // Return success response
     const response = NextResponse.json({
       success: true,
       user: result.user,
       message: 'Account created successfully'
-    })
-
-    // Set session cookie
-    response.cookies.set('session-token', result.token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7 // 7 days
     })
 
     return response

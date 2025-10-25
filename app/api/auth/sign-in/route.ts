@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { signInUser, isValidEmail } from '@/lib/auth'
+import { signIn } from '@/lib/auth'
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,36 +14,38 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (!isValidEmail(email)) {
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
       return NextResponse.json(
         { error: 'Invalid email format' },
         { status: 400 }
       )
     }
 
-    // Attempt to sign in user
-    const result = await signInUser(email, password)
+    // Attempt to sign in user with Appwrite
+    const result = await signIn(email, password)
 
-    if ('error' in result) {
+    if (!result.success) {
+      // Handle rate limit specifically
+      if (result.error?.includes('Too many') || result.error?.includes('Rate limit')) {
+        return NextResponse.json(
+          { error: 'Too many login attempts. Please wait a few minutes and try again.' },
+          { status: 429 }
+        )
+      }
+      
       return NextResponse.json(
-        { error: result.error },
+        { error: result.error || 'Invalid email or password' },
         { status: 401 }
       )
     }
 
-    // Create response with token in cookie
+    // Return success response
     const response = NextResponse.json({
       success: true,
-      user: result.user,
+      session: result.session,
       message: 'Signed in successfully'
-    })
-
-    // Set session cookie
-    response.cookies.set('session-token', result.token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7 // 7 days
     })
 
     return response

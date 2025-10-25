@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getCurrentUserWithProfile } from '@/lib/auth'
+import { getCurrentUser, getUserProfile } from '@/lib/auth'
 
 export async function GET(request: NextRequest) {
   try {
-    const user = await getCurrentUserWithProfile(request)
+    const user = await getCurrentUser()
 
     if (!user) {
       return NextResponse.json(
@@ -12,8 +12,14 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    // Get user profile from database
+    const profile = await getUserProfile(user.id)
+
     return NextResponse.json({
-      user: user,
+      user: {
+        ...user,
+        profile
+      },
       success: true
     })
   } catch (error) {
