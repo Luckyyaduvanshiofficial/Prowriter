@@ -69,65 +69,18 @@ export const AI_MODELS: AIModel[] = [
     description: 'Google\'s advanced multimodal AI model'
   },
 
-  // Google AI Models (Direct)
+  // Google AI Models (Direct) - PRIMARY MODELS
   {
     id: 'gemini-2-flash',
-    name: 'Gemini 2.0 Flash',
+    name: 'Gemini 2.5 Flash',
     provider: 'google',
-    modelId: 'gemini-2.0-flash',
+    modelId: 'gemini-2.5-flash-exp',
     tier: 'free',
-    features: ['Fast Generation', 'Real-time', 'Efficient'],
-    maxTokens: 8192,
-    costPer1000Tokens: 0.075,
-    description: 'Latest Gemini model optimized for speed and efficiency'
-  },
-  {
-    id: 'gemini-1-5-pro',
-    name: 'Gemini 1.5 Pro',
-    provider: 'google',
-    modelId: 'gemini-1.5-pro',
-    tier: 'pro',
-    features: ['Long Context', 'Advanced Reasoning', 'Multimodal'],
-    maxTokens: 32768,
-    costPer1000Tokens: 1.25,
-    description: 'High-performance model with extended context window'
-  },
-
-  // Together.ai Models
-  {
-    id: 'llama-3-3-70b-free',
-    name: 'LLaMA 3.3 70B Turbo',
-    provider: 'together',
-    modelId: 'meta-llama/Llama-3.3-70B-Instruct-Turbo-Free',
-    tier: 'free',
-    features: ['Fast Inference', 'High Quality', 'Free'],
+    features: ['Fast Generation', 'Real-time', 'Efficient', 'Latest'],
     maxTokens: 8192,
     costPer1000Tokens: 0,
-    description: 'Free high-performance LLaMA model with turbo speed'
+    description: '⭐ Default - Latest Gemini model optimized for speed and efficiency'
   },
-  {
-    id: 'llama-vision-free',
-    name: 'LLaMA Vision Free',
-    provider: 'together',
-    modelId: 'meta-llama/Llama-Vision-Free',
-    tier: 'free',
-    features: ['Vision Capabilities', 'Multimodal', 'Image Analysis'],
-    maxTokens: 8192,
-    costPer1000Tokens: 0,
-    description: 'Vision-enabled model for image understanding and description'
-  },
-  {
-    id: 'deepseek-r1-distill',
-    name: 'DeepSeek R1 Distill 70B',
-    provider: 'together',
-    modelId: 'deepseek-ai/DeepSeek-R1-Distill-Llama-70B-free',
-    tier: 'free',
-    features: ['Reasoning', 'Problem Solving', 'Analysis'],
-    maxTokens: 8192,
-    costPer1000Tokens: 0,
-    description: 'Advanced reasoning model distilled for better performance'
-  },
-
   // Baseten Models
   {
     id: 'gpt-oss-120b',
@@ -144,19 +97,19 @@ export const AI_MODELS: AIModel[] = [
 
 // Provider Configurations
 export const AI_PROVIDERS: Record<string, AIProvider> = {
+  google: {
+    id: 'google',
+    name: 'Google AI',
+    baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+    apiKeyEnv: 'GOOGLE_API_KEY',
+    models: AI_MODELS.filter(m => m.provider === 'google')
+  },
   openrouter: {
     id: 'openrouter',
     name: 'OpenRouter',
     baseURL: 'https://openrouter.ai/api/v1',
     apiKeyEnv: 'OPENROUTER_API_KEY',
     models: AI_MODELS.filter(m => m.provider === 'openrouter')
-  },
-  google: {
-    id: 'google',
-    name: 'Google AI',
-    baseURL: 'https://generativelanguage.googleapis.com/v1beta',
-    apiKeyEnv: 'GOOGLE_AI_API_KEY',
-    models: AI_MODELS.filter(m => m.provider === 'google')
   },
   together: {
     id: 'together',
@@ -458,8 +411,9 @@ export function getBestModelForTier(userTier: 'free' | 'pro', preferredProvider?
     }
   }
   
-  // Default to Baseten first, then fallback to others
-  return userTier === 'pro' 
-    ? availableModels.find(m => m.id === 'gpt-oss-120b') || availableModels.find(m => m.id === 'llama-405b') || availableModels[0]
-    : availableModels.find(m => m.id === 'llama-3-3-70b-free') || availableModels.find(m => m.id === 'qwen-72b') || availableModels[0]
+  // Default to Gemini 2.0 Flash first (free and fast), then fallback to others
+  return availableModels.find(m => m.id === 'gemini-2-flash') 
+    || availableModels.find(m => m.id === 'llama-3-3-70b-free') 
+    || availableModels.find(m => m.id === 'qwen-72b') 
+    || availableModels[0]
 }

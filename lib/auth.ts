@@ -12,7 +12,7 @@ export async function signUp(email: string, password: string, name?: string) {
   try {
     const user = await account.create(ID.unique(), email, password, name)
     await account.createEmailPasswordSession(email, password)
-    await createUserProfile(user., email, name)
+    await createUserProfile(user.$id, email, name)
     return { success: true, user }
   } catch (error: any) {
     return { success: false, error: error.message }
@@ -38,12 +38,12 @@ export async function getCurrentUser(): Promise<User | null> {
   try {
     const user = await account.get()
     return {
-      id: user.,
+      id: user.$id,
       email: user.email,
       name: user.name,
       emailVerified: user.emailVerification,
-      createdAt: user.,
-      updatedAt: user.,
+      createdAt: user.$createdAt,
+      updatedAt: user.$updatedAt,
     }
   } catch (error) {
     return null
@@ -84,7 +84,7 @@ export async function updateUserProfile(userId: string, data: any) {
     await serverDatabases.updateDocument(
       DATABASE_ID,
       COLLECTIONS.USERS,
-      profile.,
+      profile.$id,
       { ...data, updatedAt: new Date().toISOString() }
     )
     return { success: true }
