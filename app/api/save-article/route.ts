@@ -43,51 +43,13 @@ export async function POST(request: NextRequest) {
     const wordCount = content.replace(/<[^>]*>/g, '').split(/\s+/).filter((word: string) => word.length > 0).length
     const estimatedReadingTime = Math.ceil(wordCount / 200) // Average reading speed
 
-    // Check if Appwrite is properly configured
-    if (!DATABASE_ID || DATABASE_ID === 'prowriter_db') {
-      console.warn('⚠️ Appwrite database not configured properly.')
-      console.warn('Current DATABASE_ID:', DATABASE_ID)
-      console.warn('To enable article saving:')
-      console.warn('1. Create a database in Appwrite Console')
-      console.warn('2. Create an "articles" collection')
-      console.warn('3. Update NEXT_PUBLIC_APPWRITE_DATABASE_ID in .env')
-      
-      return NextResponse.json({
-        success: true,
-        warning: 'Database not configured. Article not saved.',
-        articleId: null,
-        message: 'Article generated successfully',
-        help: {
-          instructions: [
-            '1. Go to Appwrite Console (https://cloud.appwrite.io)',
-            '2. Create a new Database',
-            '3. Create a collection named "articles"',
-            '4. Add the following attributes to the collection:',
-            '   - userId (string, required)',
-            '   - title (string, required)',
-            '   - content (string, required, size: 65535)',
-            '   - metaDescription (string)',
-            '   - topic (string)',
-            '   - modelA (string)',
-            '   - modelB (string)',
-            '   - useCase (string)',
-            '   - articleLength (string)',
-            '   - aiEngine (string)',
-            '   - seoKeywords (string)',
-            '   - targetAudience (string)',
-            '   - brandVoice (string)',
-            '   - usedWebSearch (boolean)',
-            '   - usedSerpAnalysis (boolean)',
-            '   - wordCount (integer)',
-            '   - estimatedReadingTime (integer)',
-            '   - status (string)',
-            '   - createdAt (datetime)',
-            '   - updatedAt (datetime)',
-            '5. Update .env with your actual database ID'
-          ]
-        }
-      })
-    }
+    console.log('💾 Saving article to database...', { 
+      userId, 
+      title: title.substring(0, 50),
+      wordCount,
+      databaseId: DATABASE_ID,
+      collectionId: COLLECTIONS.ARTICLES
+    })
 
     // Save article to Appwrite database
     const article = await serverDatabases.createDocument(
@@ -118,7 +80,7 @@ export async function POST(request: NextRequest) {
       }
     )
 
-    console.log('✅ Article saved successfully:', title)
+    console.log('✅ Article saved successfully:', { id: article.$id, title })
 
     return NextResponse.json({
       success: true,
@@ -126,13 +88,18 @@ export async function POST(request: NextRequest) {
       message: 'Article saved successfully'
     })
 
-  } catch (error) {
-    console.error('Save article error:', error)
+  } catch (error: any) {
+    console.error('❌ Save article error:', error)
     
     // Provide more detailed error information
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    const errorMessage = error?.message || 'Unknown error'
+    const errorCode = error?.code
+    const errorType = error?.type
+    
     const errorDetails = {
       message: errorMessage,
+      code: errorCode,
+      type: errorType,
       userId: requestBody?.userId,
       hasTitle: !!requestBody?.title,
       hasContent: !!requestBody?.content,
@@ -142,11 +109,23 @@ export async function POST(request: NextRequest) {
     console.error('Detailed error:', errorDetails)
     
     // Check if it's an Appwrite-specific error
-    if (errorMessage.includes('Collection') || errorMessage.includes('Database')) {
+    if (errorMessage.includes('Collection') || errorMessage.includes('Database') || errorCode === 404) {
       return NextResponse.json(
         { 
-          error: 'Database configuration error. Please ensure Appwrite database and collections are set up.',
-          details: errorMessage
+          error: 'Database not configured properly. Please run: npm run setup:appwrite',
+          details: errorMessage,
+          help: 'Run "npm run setup:appwrite" to create the required database and collections.'
+        },
+        { status: 500 }
+      )
+    }
+    
+    if (errorMessage.includes('Attribute') || errorCode === 400) {
+      return NextResponse.json(
+        { 
+          error: 'Database schema mismatch. Please update your database schema.',
+          details: errorMessage,
+          help: 'The Articles collection is missing required attributes. Run "npm run setup:appwrite" to fix.'
         },
         { status: 500 }
       )

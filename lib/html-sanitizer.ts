@@ -41,40 +41,49 @@ export class HTMLSanitizer {
     // Step 8: Convert markdown links [text](url) to HTML
     sanitized = sanitized.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
     
-    // Step 9: Ensure proper spacing around headings
-    sanitized = sanitized.replace(/(<\/h[1-6]>)/g, '$1\n\n')
-    sanitized = sanitized.replace(/(<h[1-6][^>]*>)/g, '\n\n$1')
+    // Step 9: Add horizontal rules between major sections (between h2 headings)
+    sanitized = sanitized.replace(/(<\/h2>)(?=\s*<h2)/g, '$1\n\n<hr style="margin: 32px 0; border: 0; border-top: 2px solid #e5e7eb;">\n\n')
     
-    // Step 10: Ensure proper spacing around paragraphs
+    // Step 10: Ensure proper spacing around headings with better margins
+    sanitized = sanitized.replace(/(<h1[^>]*>)/g, '\n\n$1')
+    sanitized = sanitized.replace(/(<\/h1>)/g, '$1\n\n')
+    sanitized = sanitized.replace(/(<h2[^>]*>)/g, '\n\n$1')
+    sanitized = sanitized.replace(/(<\/h2>)/g, '$1\n\n')
+    sanitized = sanitized.replace(/(<h3[^>]*>)/g, '\n\n$1')
+    sanitized = sanitized.replace(/(<\/h3>)/g, '$1\n\n')
+    sanitized = sanitized.replace(/(<h4[^>]*>)/g, '\n\n$1')
+    sanitized = sanitized.replace(/(<\/h4>)/g, '$1\n\n')
+    
+    // Step 11: Ensure proper spacing around paragraphs
     sanitized = sanitized.replace(/(<\/p>)(<p>)/g, '$1\n\n$2')
     sanitized = sanitized.replace(/(<\/p>)(<h[1-6])/g, '$1\n\n$2')
     sanitized = sanitized.replace(/(<\/h[1-6]>)(<p>)/g, '$1\n\n$2')
     
-    // Step 11: Clean up multiple consecutive line breaks
+    // Step 12: Clean up multiple consecutive line breaks
     sanitized = sanitized.replace(/\n{3,}/g, '\n\n')
     
-    // Step 12: Fix table styling (add if missing)
+    // Step 13: Fix table styling (add if missing) with better margins and borders
     sanitized = sanitized.replace(
       /<table(?![^>]*style=)/g,
-      '<table style="width: 100%; border-collapse: collapse; margin: 20px 0; border: 1px solid #e5e7eb;"'
+      '<table style="width: 100%; border-collapse: collapse; margin: 32px 0; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1);"'
     )
     
-    // Step 13: Fix table headers (th styling)
+    // Step 14: Fix table headers (th styling) with enhanced design
     sanitized = sanitized.replace(
       /<th(?![^>]*style=)/g,
-      '<th style="border: 1px solid #dee2e6; padding: 12px; text-align: left; background-color: #f8f9fa; font-weight: 600;"'
+      '<th style="border: 1px solid #dee2e6; padding: 16px; text-align: left; background: linear-gradient(to bottom, #f8f9fa, #f1f3f5); font-weight: 600; color: #1e293b; font-size: 0.95rem;"'
     )
     
-    // Step 14: Fix table cells (td styling)
+    // Step 15: Fix table cells (td styling) with better padding
     sanitized = sanitized.replace(
       /<td(?![^>]*style=)/g,
-      '<td style="border: 1px solid #dee2e6; padding: 12px;"'
+      '<td style="border: 1px solid #dee2e6; padding: 14px; color: #334155; line-height: 1.6;"'
     )
     
-    // Step 15: Enhance blockquotes (add if missing style)
+    // Step 16: Enhance blockquotes (add if missing style) with better design
     sanitized = sanitized.replace(
       /<blockquote(?![^>]*style=)/g,
-      '<blockquote style="border-left: 4px solid #3b82f6; padding: 16px 20px; margin: 20px 0; background-color: #f8fafc; font-style: italic; color: #334155;"'
+      '<blockquote style="border-left: 4px solid #3b82f6; padding: 20px 24px; margin: 28px 0; background: linear-gradient(to right, #f8fafc, #ffffff); font-style: italic; color: #334155; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);"'
     )
     
     // Step 16: Add proper div styling for content blocks

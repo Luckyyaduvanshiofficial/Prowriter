@@ -3,6 +3,7 @@ import { createProviderClient, getModelById } from "@/lib/ai-providers"
 import { createWebResearcher, type WebSearchOptions } from "@/lib/web-search"
 import { sanitizeHTML, getWordCount, getReadingTime } from "@/lib/html-sanitizer"
 import { getUserProfile, updateUserProfile } from "@/lib/auth"
+import { getImagesForArticle, type ImageResult } from "@/lib/image-fetcher"
 
 const MASTER_PROMPT = `You are an elite content strategist, SEO expert, and professional blog writer specializing in creating exceptional, high-value content that dominates search rankings and engages readers.
 
@@ -270,7 +271,9 @@ export async function POST(request: NextRequest) {
       includeWebSearch = false,
       includeSerpAnalysis = false,
       webSearchDepth = 5,
-      includeRecentNews = false
+      includeRecentNews = false,
+      includeImages = true, // New option for AI images
+      imageCount = 3 // Number of images to include
     } = body
 
     if (!topic) {
@@ -808,10 +811,37 @@ Use proper HTML formatting throughout with semantic structure and engaging conte
     })
 
     // CRITICAL: Sanitize the generated content to remove ALL markdown artifacts
-    const sanitizedContent = sanitizeHTML(response.content)
+    let sanitizedContent = sanitizeHTML(response.content)
+
+    // Fetch and insert AI-generated images if enabled
+    let articleImages: ImageResult[] = []
+    if (includeImages) {
+      try {
+        console.log(`🖼️ Fetching ${imageCount} AI-generated images for article...`)
+        const imageResult = await getImagesForArticle(
+          sanitizedContent,
+          topic,
+          {
+            count: imageCount,
+            includeInContent: true,
+            orientation: 'landscape'
+          }
+        )
+        
+        if (imageResult.contentWithImages) {
+          sanitizedContent = imageResult.contentWithImages
+          articleImages = imageResult.images
+          console.log(`✅ Successfully integrated ${articleImages.length} images into article`)
+        }
+      } catch (imageError) {
+        console.error('Failed to fetch/insert images:', imageError)
+        // Continue without images if fetch fails
+      }
+    }
 
     return NextResponse.json({
       content: sanitizedContent,
+      images: articleImages, // Include images in response
       metadata: {
         topic,
         modelA,
@@ -841,7 +871,11 @@ Use proper HTML formatting throughout with semantic structure and engaging conte
         usage: response.usage,
         // Add stats from sanitized content
         wordCount: getWordCount(sanitizedContent),
-        readingTime: getReadingTime(sanitizedContent)
+        readingTime: getReadingTime(sanitizedContent),
+        // Image metadata
+        includeImages,
+        imageCount: articleImages.length,
+        imageSources: articleImages.map(img => img.source)
       },
     })
   } catch (error) {

@@ -11,6 +11,11 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'User ID required' }, { status: 400 })
     }
     
+    // Validate userId format to prevent potential issues
+    if (userId.length > 100 || !/^[a-zA-Z0-9_-]+$/.test(userId)) {
+      return NextResponse.json({ error: 'Invalid user ID format' }, { status: 400 })
+    }
+    
     // Get user profile from database
     const profile = await getUserProfile(userId)
     
@@ -18,19 +23,25 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
     }
     
-    // Return profile data
-    return NextResponse.json({ 
+    // Return only essential profile data to minimize response size
+    const responseData = { 
       profile: {
         id: userId,
-        email: profile.email,
-        name: profile.name,
-        plan: profile.plan,
-        articles_generated_today: profile.articlesGeneratedToday,
+        email: profile.email || '',
+        name: profile.name || '',
+        plan: profile.plan || 'free',
+        articles_generated_today: profile.articlesGeneratedToday || 0,
         articles_limit: profile.plan === 'pro' ? 25 : profile.plan === 'admin' ? 999 : 5,
-        subscription_status: profile.subscriptionStatus,
-        created_at: profile.createdAt,
-        updated_at: profile.updatedAt,
-        last_generation_date: profile.lastGenerationDate
+        subscription_status: profile.subscriptionStatus || 'inactive',
+        created_at: profile.createdAt || new Date().toISOString(),
+        updated_at: profile.updatedAt || new Date().toISOString(),
+        last_generation_date: profile.lastGenerationDate || null
+      }
+    }
+    
+    return NextResponse.json(responseData, {
+      headers: {
+        'Cache-Control': 'no-store, max-age=0',
       }
     })
   } catch (error) {
@@ -48,6 +59,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'User ID required' }, { status: 400 })
     }
     
+    // Validate userId format
+    if (userId.length > 100 || !/^[a-zA-Z0-9_-]+$/.test(userId)) {
+      return NextResponse.json({ error: 'Invalid user ID format' }, { status: 400 })
+    }
+    
     // Update user profile in database
     const result = await updateUserProfile(userId, updateData)
     
@@ -61,11 +77,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ 
       profile: {
         id: userId,
-        plan: profile?.plan,
-        articles_generated_today: profile?.articlesGeneratedToday,
+        plan: profile?.plan || 'free',
+        articles_generated_today: profile?.articlesGeneratedToday || 0,
         articles_limit: profile?.plan === 'pro' ? 25 : 5,
-        subscription_status: profile?.subscriptionStatus,
-        updated_at: profile?.updatedAt
+        subscription_status: profile?.subscriptionStatus || 'inactive',
+        updated_at: profile?.updatedAt || new Date().toISOString()
+      }
+    }, {
+      headers: {
+        'Cache-Control': 'no-store, max-age=0',
       }
     })
   } catch (error) {

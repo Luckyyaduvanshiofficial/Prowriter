@@ -297,7 +297,7 @@ export default function GeneratePage() {
 
   if (loading || authLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="page-background flex items-center justify-center">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
       </div>
     )
@@ -305,15 +305,15 @@ export default function GeneratePage() {
 
   if (!clerkUser || !profile) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
+      <div className="page-background flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <div className="icon-container-lg bg-blue-100 mx-auto mb-4">
             <Sparkles className="w-8 h-8 text-blue-600" />
           </div>
           <h2 className="text-xl font-bold text-gray-900 mb-2">Please Sign In</h2>
           <p className="text-gray-600 mb-4">You need to be signed in to use the article generator</p>
           <Link href="/sign-in">
-            <Button>Sign In</Button>
+            <Button className="gradient-primary text-white">Sign In</Button>
           </Link>
         </div>
       </div>
@@ -326,7 +326,7 @@ export default function GeneratePage() {
   const progressPercentage = (articlesUsed / dailyLimit) * 100
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+    <div className="page-background">
       {/* Use new AppHeader component with AI selector */}
       <AppHeader
         selectedAIModel={aiEngine}
@@ -335,7 +335,7 @@ export default function GeneratePage() {
       />
 
       {/* Page Navigation */}
-      <div className="bg-white/60 backdrop-blur-sm border-b border-gray-200/50">
+      <div className="glass border-b border-gray-200/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">

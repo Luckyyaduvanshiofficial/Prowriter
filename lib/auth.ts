@@ -109,13 +109,39 @@ async function createUserProfile(userId: string, email: string, name?: string) {
 }
 export async function getUserProfile(userId: string) {
   try {
-    const response = await serverDatabases.listDocuments(
+    // Add timeout protection
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Database query timeout')), 10000)
+    )
+    
+    const queryPromise = serverDatabases.listDocuments(
       DATABASE_ID,
       COLLECTIONS.USERS,
-      [Query.equal('userId', userId)]
+      [Query.equal('userId', userId), Query.limit(1)]
     )
-    return response.documents.length > 0 ? response.documents[0] : null
-  } catch (error) {
+    
+    const response = await Promise.race([queryPromise, timeoutPromise]) as any
+    
+    if (!response || !response.documents || response.documents.length === 0) {
+      return null
+    }
+    
+    // Return only essential fields to prevent memory issues
+    const doc = response.documents[0]
+    return {
+      $id: doc.$id,
+      userId: doc.userId,
+      email: doc.email || '',
+      name: doc.name || '',
+      plan: doc.plan || 'free',
+      articlesGeneratedToday: doc.articlesGeneratedToday || 0,
+      subscriptionStatus: doc.subscriptionStatus || 'inactive',
+      createdAt: doc.createdAt || doc.$createdAt,
+      updatedAt: doc.updatedAt || doc.$updatedAt,
+      lastGenerationDate: doc.lastGenerationDate || null
+    }
+  } catch (error: any) {
+    console.error('getUserProfile error:', error?.message || error)
     return null
   }
 }

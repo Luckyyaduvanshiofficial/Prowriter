@@ -10,6 +10,22 @@ const nextConfig = {
     unoptimized: true,
     domains: ['prowriter.miniai.online'],
   },
+  webpack: (config, { isServer }) => {
+    // Optimize webpack cache to prevent memory issues
+    config.cache = {
+      type: 'filesystem',
+      compression: 'gzip',
+      maxMemoryGenerations: 1,
+    }
+    
+    // Reduce memory usage
+    config.optimization = {
+      ...config.optimization,
+      moduleIds: 'deterministic',
+    }
+    
+    return config
+  },
   async headers() {
     return [
       {

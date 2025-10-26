@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { generateNextLevelBlog } from "@/lib/langchain-blog-pipeline";
 import { sanitizeHTML, getWordCount, getReadingTime } from "@/lib/html-sanitizer";
 import { getUserProfile, updateUserProfile } from "@/lib/auth";
+import { getImagesForArticle, type ImageResult } from "@/lib/image-fetcher";
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,7 +20,10 @@ export async function POST(request: NextRequest) {
       // Next-level specific options
       includeInteractiveElements = true,
       addUniqueEnhancements = true,
-      generateAdvancedMetadata = true
+      generateAdvancedMetadata = true,
+      // Image options
+      includeImages = true,
+      imageCount = 3
     } = body;
 
     if (!topic) {
@@ -140,7 +144,33 @@ export async function POST(request: NextRequest) {
     const rawArticle = result.article || "<h1>Error</h1><p>Article generation failed.</p>";
     
     // CRITICAL: Sanitize the article to remove ALL markdown artifacts
-    const article = sanitizeHTML(rawArticle);
+    let article = sanitizeHTML(rawArticle);
+    
+    // Fetch and insert AI-generated images if enabled
+    let articleImages: ImageResult[] = []
+    if (includeImages && article) {
+      try {
+        console.log(`🖼️ Fetching ${imageCount} AI-generated images for next-level article...`)
+        const imageResult = await getImagesForArticle(
+          article,
+          topic,
+          {
+            count: imageCount,
+            includeInContent: true,
+            orientation: 'landscape'
+          }
+        )
+        
+        if (imageResult.contentWithImages && imageResult.images.length > 0) {
+          article = imageResult.contentWithImages
+          articleImages = imageResult.images
+          console.log(`✅ Successfully integrated ${articleImages.length} images into next-level article`)
+        }
+      } catch (imageError) {
+        console.error('Failed to fetch/insert images:', imageError)
+        // Continue without images if fetch fails
+      }
+    }
     
     const metadata = result.metadata || {
       meta_description: "",
@@ -162,6 +192,7 @@ export async function POST(request: NextRequest) {
       message: "Next-level blog post generated successfully!",
       data: {
         article: article,
+        images: articleImages, // Include images in response
         metadata: {
           meta_description: metadata.meta_description || `Complete guide about ${topic}`,
           keywords: metadata.keywords || [topic],
@@ -174,7 +205,10 @@ export async function POST(request: NextRequest) {
             interactive_elements: includeInteractiveElements,
             unique_enhancements: addUniqueEnhancements,
             advanced_metadata: generateAdvancedMetadata
-          }
+          },
+          includeImages,
+          imageCount: articleImages.length,
+          imageSources: articleImages.map(img => img.source)
         },
         research_data: resultResearchData,
         outline: outline,

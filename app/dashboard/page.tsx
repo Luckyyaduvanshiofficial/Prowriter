@@ -8,11 +8,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { AppHeader } from "@/components/app-header"
-import { 
-  PenTool, 
-  FileText, 
-  Crown, 
-  TrendingUp, 
+import {
+  PenTool,
+  FileText,
+  Crown,
+  TrendingUp,
   Calendar,
   Settings,
   LogOut,
@@ -29,7 +29,9 @@ import {
   Eye,
   CheckCircle,
   GitCompare,
-  Type
+  Type,
+  ArrowUp,
+  ArrowDown
 } from "lucide-react"
 import Link from "next/link"
 
@@ -154,9 +156,9 @@ export default function Dashboard() {
 
   if (loading || !isLoaded) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
+      <div className="page-background flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-pulse">
+          <div className="icon-container-lg gradient-primary mx-auto mb-4 animate-pulse">
             <Brain className="w-8 h-8 text-white" />
           </div>
           <p className="text-gray-600">Loading your dashboard...</p>
@@ -168,7 +170,7 @@ export default function Dashboard() {
   // Show error state if there's an error
   if (error && !profile) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center p-4">
+      <div className="page-background flex items-center justify-center p-4">
         <Card className="max-w-md w-full">
           <CardHeader>
             <CardTitle className="text-red-600 flex items-center">
@@ -196,9 +198,9 @@ export default function Dashboard() {
 
   if (!user || !profile) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
+      <div className="page-background flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <div className="icon-container-lg bg-blue-100 mx-auto mb-4">
             <Brain className="w-8 h-8 text-blue-600" />
           </div>
           <h2 className="text-xl font-bold text-gray-900 mb-2">Loading Dashboard...</h2>
@@ -215,8 +217,44 @@ export default function Dashboard() {
   const articlesUsed = profile.articles_generated_today || 0
   const progressPercentage = (articlesUsed / dailyLimit) * 100
 
+  // Calculate monthly articles accurately
+  const getMonthlyArticles = () => {
+    const now = new Date()
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+    
+    return articles.filter(article => {
+      const created = new Date(article.createdAt || article.$createdAt || article.created_at)
+      return created >= monthStart
+    }).length
+  }
+
+  // Calculate last month's articles for growth comparison
+  const getLastMonthArticles = () => {
+    const now = new Date()
+    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+    const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0)
+    
+    return articles.filter(article => {
+      const created = new Date(article.createdAt || article.$createdAt || article.created_at)
+      return created >= lastMonthStart && created <= lastMonthEnd
+    }).length
+  }
+
+  // Calculate growth rate
+  const getGrowthRate = () => {
+    const thisMonth = getMonthlyArticles()
+    const lastMonth = getLastMonthArticles()
+    
+    if (lastMonth === 0) return thisMonth > 0 ? 100 : 0
+    return ((thisMonth - lastMonth) / lastMonth * 100)
+  }
+
+  const monthlyArticles = getMonthlyArticles()
+  const growthRate = getGrowthRate()
+  const isGrowthPositive = growthRate >= 0
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+    <div className="page-background">
       {/* Use new AppHeader component */}
       <AppHeader />
 
@@ -317,7 +355,24 @@ export default function Dashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600">This Month</p>
-                  <p className="text-2xl font-bold text-gray-900">47</p>
+                  <p className="text-2xl font-bold text-gray-900">{monthlyArticles}</p>
+                  <div className="flex items-center gap-1 mt-1">
+                    {isGrowthPositive ? (
+                      <>
+                        <ArrowUp className="w-4 h-4 text-green-600" />
+                        <span className="text-sm text-green-600">
+                          +{Math.abs(growthRate).toFixed(1)}%
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <ArrowDown className="w-4 h-4 text-red-600" />
+                        <span className="text-sm text-red-600">
+                          {growthRate.toFixed(1)}%
+                        </span>
+                      </>
+                    )}
+                  </div>
                 </div>
                 <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
                   <TrendingUp className="w-6 h-6 text-orange-600" />
@@ -371,6 +426,26 @@ export default function Dashboard() {
                   <span>Article History</span>
                 </Button>
               </Link>
+
+              <Link href="/analytics">
+                <Button 
+                  variant="outline" 
+                  className="w-full h-20 flex flex-col items-center justify-center space-y-2 border-2 hover:bg-gray-50"
+                >
+                  <BarChart3 className="w-6 h-6" />
+                  <span>Analytics</span>
+                </Button>
+              </Link>
+
+              <Link href="/settings">
+                <Button 
+                  variant="outline" 
+                  className="w-full h-20 flex flex-col items-center justify-center space-y-2 border-2 hover:bg-gray-50"
+                >
+                  <Settings className="w-6 h-6" />
+                  <span>Settings</span>
+                </Button>
+              </Link>
               
               <Link href="/pricing">
                 <Button 
@@ -419,39 +494,57 @@ export default function Dashboard() {
                 <Clock className="w-5 h-5 mr-2 text-gray-600" />
                 Recent Articles
               </div>
-              <Button variant="ghost" size="sm">
-                View All
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
+              <Link href="/articles">
+                <Button variant="ghost" size="sm">
+                  View All
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+              </Link>
             </CardTitle>
           </CardHeader>
           <CardContent>
             {articles.length > 0 ? (
               <div className="space-y-4">
-                {articles.map((article) => (
-                  <div key={article.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                    <div className="flex items-center space-x-4">
-                      <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
+                {articles.slice(0, 5).map((article) => (
+                  <div key={article.$id || article.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                    <div className="flex items-center space-x-4 flex-1 min-w-0">
+                      <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
                         <FileText className="w-5 h-5 text-white" />
                       </div>
-                      <div>
-                        <h3 className="font-medium text-gray-900">{article.title}</h3>
-                        <p className="text-sm text-gray-600">
-                          {new Date(article.created_at).toLocaleDateString()}
-                        </p>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-medium text-gray-900 truncate">{article.title}</h3>
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <span>{new Date(article.createdAt || article.created_at || article.$createdAt).toLocaleDateString()}</span>
+                          {article.wordCount && (
+                            <>
+                              <span>•</span>
+                              <span>{article.wordCount} words</span>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <Badge variant="secondary">{article.status}</Badge>
-                      <Button variant="ghost" size="sm">
-                        <Eye className="w-4 h-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm">
-                        <Download className="w-4 h-4" />
-                      </Button>
+                    <div className="flex items-center space-x-2 flex-shrink-0 ml-4">
+                      <Badge variant="secondary" className="capitalize">
+                        {article.status || 'draft'}
+                      </Badge>
+                      <Link href="/articles">
+                        <Button variant="ghost" size="sm" title="View article">
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                      </Link>
                     </div>
                   </div>
                 ))}
+                {articles.length > 5 && (
+                  <div className="text-center pt-2">
+                    <Link href="/articles">
+                      <Button variant="outline" size="sm">
+                        View {articles.length - 5} More Articles
+                      </Button>
+                    </Link>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="text-center py-8">
@@ -459,7 +552,7 @@ export default function Dashboard() {
                   <FileText className="w-8 h-8 text-gray-400" />
                 </div>
                 <p className="text-gray-600 mb-4">No articles yet</p>
-                <Link href="/generate">
+                <Link href="/blog-writer">
                   <Button>
                     <Plus className="w-4 h-4 mr-2" />
                     Create Your First Article

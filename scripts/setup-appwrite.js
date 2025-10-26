@@ -126,17 +126,50 @@ async function setupDatabase() {
       await databases.createStringAttribute(DATABASE_ID, ARTICLES_COLLECTION_ID, 'content', 65535, true);
       console.log('  ✓ content attribute added');
       
+      await databases.createStringAttribute(DATABASE_ID, ARTICLES_COLLECTION_ID, 'metaDescription', 1000, false);
+      console.log('  ✓ metaDescription attribute added');
+      
       await databases.createStringAttribute(DATABASE_ID, ARTICLES_COLLECTION_ID, 'topic', 255, false);
       console.log('  ✓ topic attribute added');
       
-      await databases.createStringAttribute(DATABASE_ID, ARTICLES_COLLECTION_ID, 'keywords', 100, false, undefined, true);
-      console.log('  ✓ keywords attribute added');
+      await databases.createStringAttribute(DATABASE_ID, ARTICLES_COLLECTION_ID, 'modelA', 100, false);
+      console.log('  ✓ modelA attribute added');
       
-      await databases.createStringAttribute(DATABASE_ID, ARTICLES_COLLECTION_ID, 'aiModel', 100, false);
-      console.log('  ✓ aiModel attribute added');
+      await databases.createStringAttribute(DATABASE_ID, ARTICLES_COLLECTION_ID, 'modelB', 100, false);
+      console.log('  ✓ modelB attribute added');
+      
+      await databases.createStringAttribute(DATABASE_ID, ARTICLES_COLLECTION_ID, 'useCase', 100, false);
+      console.log('  ✓ useCase attribute added');
+      
+      await databases.createStringAttribute(DATABASE_ID, ARTICLES_COLLECTION_ID, 'articleLength', 50, false);
+      console.log('  ✓ articleLength attribute added');
+      
+      await databases.createStringAttribute(DATABASE_ID, ARTICLES_COLLECTION_ID, 'aiEngine', 100, false);
+      console.log('  ✓ aiEngine attribute added');
+      
+      await databases.createStringAttribute(DATABASE_ID, ARTICLES_COLLECTION_ID, 'seoKeywords', 500, false);
+      console.log('  ✓ seoKeywords attribute added');
+      
+      await databases.createStringAttribute(DATABASE_ID, ARTICLES_COLLECTION_ID, 'targetAudience', 200, false);
+      console.log('  ✓ targetAudience attribute added');
+      
+      await databases.createStringAttribute(DATABASE_ID, ARTICLES_COLLECTION_ID, 'brandVoice', 100, false);
+      console.log('  ✓ brandVoice attribute added');
+      
+      await databases.createBooleanAttribute(DATABASE_ID, ARTICLES_COLLECTION_ID, 'usedWebSearch', false);
+      console.log('  ✓ usedWebSearch attribute added');
+      
+      await databases.createBooleanAttribute(DATABASE_ID, ARTICLES_COLLECTION_ID, 'usedSerpAnalysis', false);
+      console.log('  ✓ usedSerpAnalysis attribute added');
       
       await databases.createIntegerAttribute(DATABASE_ID, ARTICLES_COLLECTION_ID, 'wordCount', true);
       console.log('  ✓ wordCount attribute added');
+      
+      await databases.createIntegerAttribute(DATABASE_ID, ARTICLES_COLLECTION_ID, 'estimatedReadingTime', false);
+      console.log('  ✓ estimatedReadingTime attribute added');
+      
+      await databases.createStringAttribute(DATABASE_ID, ARTICLES_COLLECTION_ID, 'status', 50, false);
+      console.log('  ✓ status attribute added');
       
       await databases.createDatetimeAttribute(DATABASE_ID, ARTICLES_COLLECTION_ID, 'createdAt', true);
       console.log('  ✓ createdAt attribute added');

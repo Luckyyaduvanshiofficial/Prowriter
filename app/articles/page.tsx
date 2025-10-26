@@ -22,18 +22,30 @@ import {
 import Link from "next/link"
 
 interface Article {
-  id: string
+  $id: string
+  id?: string
+  userId: string
   title: string
   content: string
-  meta_description: string
-  article_length: string
-  ai_engine: string
-  use_case: string
-  created_at: string
-  topic: string
-  seo_keywords: string
-  target_audience: string
-  brand_voice: string
+  metaDescription?: string
+  topic?: string
+  modelA?: string
+  modelB?: string
+  useCase?: string
+  articleLength?: string
+  aiEngine?: string
+  seoKeywords?: string
+  targetAudience?: string
+  brandVoice?: string
+  usedWebSearch?: boolean
+  usedSerpAnalysis?: boolean
+  wordCount: number
+  estimatedReadingTime?: number
+  status?: string
+  createdAt: string
+  updatedAt?: string
+  $createdAt?: string
+  $updatedAt?: string
 }
 
 export default function ArticleHistoryPage() {
@@ -129,7 +141,7 @@ export default function ArticleHistoryPage() {
       }
       
       // Remove from local state
-      setArticles(articles.filter(a => a.id !== articleId))
+      setArticles(articles.filter(a => (a.$id || a.id) !== articleId))
       alert("Article deleted successfully!")
     } catch (err) {
       console.error("Error deleting article:", err)
@@ -157,6 +169,7 @@ export default function ArticleHistoryPage() {
   }
 
   const formatDate = (dateString: string) => {
+    if (!dateString) return 'N/A'
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
@@ -166,8 +179,10 @@ export default function ArticleHistoryPage() {
     })
   }
 
-  const getArticleTypeColor = (useCase: string) => {
-    switch (useCase) {
+  const getArticleTypeColor = (useCase?: string) => {
+    if (!useCase) return 'bg-gray-100 text-gray-800'
+    
+    switch (useCase.toLowerCase()) {
       case 'comparison': return 'bg-blue-100 text-blue-800'
       case 'how-to': return 'bg-green-100 text-green-800'
       case 'guide': return 'bg-purple-100 text-purple-800'
@@ -183,7 +198,7 @@ export default function ArticleHistoryPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
+      <div className="page-background flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
           <p className="text-gray-600">Loading articles...</p>
@@ -193,9 +208,9 @@ export default function ArticleHistoryPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+    <div className="page-background">
       {/* Header */}
-      <div className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-10">
+      <div className="border-b glass sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-4">
@@ -211,7 +226,7 @@ export default function ArticleHistoryPage() {
               </div>
             </div>
             <Link href="/blog-writer">
-              <Button>
+              <Button className="gradient-primary text-white">
                 <FileText className="h-4 w-4 mr-2" />
                 New Article
               </Button>
@@ -228,7 +243,7 @@ export default function ArticleHistoryPage() {
               <CardContent className="pt-6">
                 <div className="flex items-start justify-between">
                   <div className="flex items-start space-x-3">
-                    <div className="h-10 w-10 rounded-full bg-yellow-100 flex items-center justify-center flex-shrink-0">
+                    <div className="icon-container-md bg-yellow-100 flex-shrink-0">
                       <AlertTriangle className="h-5 w-5 text-yellow-600" />
                     </div>
                     <div className="flex-1">
@@ -284,27 +299,29 @@ export default function ArticleHistoryPage() {
           <>
             <div className="grid gap-6">
               {articles.map((article) => (
-                <Card key={article.id} className="hover:shadow-lg transition-shadow">
+                <Card key={article.$id || article.id} className="hover:shadow-lg transition-shadow">
                   <CardHeader>
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
                         <CardTitle className="text-xl mb-2">{article.title}</CardTitle>
                         <CardDescription className="mb-3">
-                          {article.meta_description || article.topic}
+                          {article.metaDescription || article.topic || 'No description available'}
                         </CardDescription>
                         <div className="flex flex-wrap gap-2">
-                          <Badge className={getArticleTypeColor(article.use_case)}>
-                            {article.use_case.replace('-', ' ')}
+                          <Badge className={getArticleTypeColor(article.useCase)}>
+                            {article.useCase?.replace('-', ' ') || 'Article'}
                           </Badge>
+                          {article.aiEngine && (
+                            <Badge variant="outline">
+                              {article.aiEngine.toUpperCase()}
+                            </Badge>
+                          )}
                           <Badge variant="outline">
-                            {article.ai_engine.toUpperCase()}
-                          </Badge>
-                          <Badge variant="outline">
-                            {getWordCount(article.content)} words
+                            {article.wordCount || getWordCount(article.content)} words
                           </Badge>
                           <Badge variant="outline">
                             <Calendar className="h-3 w-3 mr-1" />
-                            {formatDate(article.created_at)}
+                            {formatDate(article.createdAt || article.$createdAt || '')}
                           </Badge>
                         </div>
                       </div>
@@ -344,11 +361,11 @@ export default function ArticleHistoryPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleDelete(article.id)}
-                        disabled={deleting === article.id}
+                        onClick={() => handleDelete(article.$id || article.id || '')}
+                        disabled={deleting === (article.$id || article.id)}
                         className="text-red-600 hover:text-red-700 hover:bg-red-50"
                       >
-                        {deleting === article.id ? (
+                        {deleting === (article.$id || article.id) ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
                         ) : (
                           <Trash2 className="h-4 w-4" />

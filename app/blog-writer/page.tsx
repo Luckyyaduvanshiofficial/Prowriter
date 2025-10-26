@@ -1779,7 +1779,23 @@ ${articleType === 'comparison' ? `
                       </CardHeader>
                       <CardContent>
                         <div 
-                          className="prose prose-lg max-w-none prose-blue prose-headings:text-gray-900 prose-p:text-gray-700 prose-a:text-blue-600 prose-strong:text-gray-900"
+                          className="prose prose-lg max-w-none 
+                            prose-headings:font-bold prose-headings:text-gray-900 prose-headings:tracking-tight
+                            prose-h1:text-4xl prose-h1:mb-8 prose-h1:mt-0 prose-h1:leading-tight
+                            prose-h2:text-3xl prose-h2:mb-6 prose-h2:mt-12 prose-h2:pb-3 prose-h2:leading-snug
+                            prose-h3:text-2xl prose-h3:mb-4 prose-h3:mt-8 prose-h3:leading-snug
+                            prose-h4:text-xl prose-h4:mb-3 prose-h4:mt-6
+                            prose-p:mb-6 prose-p:leading-relaxed prose-p:text-gray-700 prose-p:text-lg
+                            prose-strong:font-semibold prose-strong:text-gray-900
+                            prose-a:text-blue-600 prose-a:no-underline prose-a:hover:underline prose-a:font-medium
+                            prose-table:w-full prose-table:border-collapse prose-table:my-8 prose-table:shadow-sm
+                            prose-th:border prose-th:border-gray-300 prose-th:bg-gradient-to-b prose-th:from-gray-50 prose-th:to-gray-100 prose-th:p-4 prose-th:text-left prose-th:font-semibold prose-th:text-gray-800
+                            prose-td:border prose-td:border-gray-300 prose-td:p-4 prose-td:text-gray-700
+                            prose-blockquote:border-l-4 prose-blockquote:border-blue-500 prose-blockquote:pl-6 prose-blockquote:pr-4 prose-blockquote:italic prose-blockquote:my-8 prose-blockquote:bg-blue-50 prose-blockquote:py-4 prose-blockquote:rounded-r
+                            prose-ul:my-6 prose-ol:my-6 prose-ul:space-y-2 prose-ol:space-y-2
+                            prose-li:mb-2 prose-li:text-gray-700 prose-li:leading-relaxed
+                            prose-hr:my-12 prose-hr:border-t-2 prose-hr:border-gray-200
+                            prose-img:rounded-lg prose-img:shadow-lg prose-img:my-8"
                           dangerouslySetInnerHTML={{ __html: generatedContent }}
                         />
                       </CardContent>

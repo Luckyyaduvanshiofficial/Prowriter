@@ -8,9 +8,9 @@ import Link from "next/link"
 
 export default function PricingPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+    <div className="page-background">
       {/* Header */}
-      <header className="bg-white/80 backdrop-blur-sm border-b">
+      <header className="glass border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
@@ -20,7 +20,7 @@ export default function PricingPage() {
               <h1 className="text-xl font-semibold">Pricing</h1>
             </div>
             <Link href="/auth">
-              <Button>Get Started</Button>
+              <Button className="gradient-primary text-white">Get Started</Button>
             </Link>
           </div>
         </div>
